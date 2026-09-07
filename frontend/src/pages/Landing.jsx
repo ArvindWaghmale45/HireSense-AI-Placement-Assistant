@@ -193,48 +193,6 @@ export default function Landing() {
               </div>
             </motion.div>
           </div>
-
-          {/* Futuristic Cinematic Terminal Showcase Preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="mt-14 relative mx-auto max-w-5xl rounded-2xl border border-primary/30 p-2 sm:p-3 bg-gradient-to-b from-card/80 via-card/50 to-background/90 backdrop-blur-xl shadow-2xl shadow-primary/10 overflow-hidden"
-          >
-            <div className="rounded-xl overflow-hidden border border-border/80 relative aspect-video sm:aspect-[21/9] bg-slate-950 flex items-center justify-center group">
-              <img
-                src="/hero_tech_room.jpg"
-                alt="Futuristic AI Interview Room in Bengaluru"
-                className="w-full h-full object-cover opacity-85 group-hover:scale-[1.02] transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-              
-              {/* Overlay terminal interface badges */}
-              <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/70 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-xs text-white">
-                <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
-                <span className="font-mono font-medium">Bengaluru Tech Hub • Live AI Session</span>
-              </div>
-
-              <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <Badge variant="outline" className="bg-primary/20 text-white border-primary/40 mb-1.5">
-                    Interactive Mock Examiner
-                  </Badge>
-                  <h3 className="text-lg sm:text-2xl font-bold text-white font-display">
-                    Experience High-Tech Corporate Engineering Rounds
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-300 max-w-xl hidden sm:block">
-                    Real-time question voice synthesis, speech-to-text response capturing, and instant rubrics grading technical correctness, conceptual depth, and communication.
-                  </p>
-                </div>
-                <Button asChild size="sm" className="shadow-lg shadow-primary/30 bg-primary hover:bg-primary/90">
-                  <Link to={user ? "/interview" : "/register"}>
-                    Launch Live Room <ArrowRight className="size-3.5 ml-1.5" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </motion.div>
         </div>
       </section>
 
