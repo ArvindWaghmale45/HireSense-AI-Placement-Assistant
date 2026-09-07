@@ -120,7 +120,7 @@ export function FloatingChatbot() {
           id: "err-" + Date.now(),
           role: "assistant",
           content:
-            "I ran into a problem fetching the answer. Please check your Gemini API key in Interview Setup or try again.",
+            "I ran into a brief connection delay. Please ask your question again or explore another placement topic!",
           createdAt: new Date().toISOString(),
         },
       ]);

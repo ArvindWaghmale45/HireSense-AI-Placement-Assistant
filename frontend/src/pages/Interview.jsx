@@ -187,7 +187,7 @@ function InterviewBody() {
         setAnswer(refinedText);
         toast.success("AI Transcribed audio with technical accuracy!");
       } else {
-        toast.info("Add a free Gemini key in Setup to enable multimodal AI transcription.");
+        toast.info("Audio recorded. You can review your response and submit.");
       }
     } catch (err) {
       toast.error("AI Transcription notice: " + err.message);
@@ -1153,97 +1153,26 @@ function InterviewBody() {
               />
             </div>
 
-            {/* AI Engine Status & 1-Click Verification Tool */}
-            <div className="rounded-lg border border-border/70 bg-card/60 p-3.5 space-y-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Bot className="size-4 text-primary" />
-                  <span className="font-semibold text-xs text-foreground">AI Placement Engine</span>
-                  <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
-                    gemini-3.6-flash
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="xs"
-                    onClick={() => setShowKeyInput(!showKeyInput)}
-                    className="text-[11px] h-7 text-muted-foreground hover:text-foreground"
-                  >
-                    {showKeyInput ? "Hide Key ▲" : "Set API Key ⚙️"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="xs"
-                    onClick={handleTestAiConnection}
-                    disabled={testingAi}
-                    className="text-xs h-7 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
-                  >
-                    {testingAi ? <Loader2 className="size-3 animate-spin" /> : <Zap className="size-3" />}
-                    {testingAi ? "Verifying..." : "Test AI Connection"}
-                  </Button>
-                </div>
-              </div>
-
-              {showKeyInput && (
-                <div className="p-2.5 rounded-lg border border-border/80 bg-background/80 space-y-2 animate-in fade-in-50">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-medium text-foreground">Gemini API Key:</span>
-                    <a
-                      href="https://aistudio.google.com/app/apikey"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      Get Free Key from Google AI Studio ↗
-                    </a>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      type="password"
-                      placeholder="Paste Gemini API Key (AIzaSy...)"
-                      value={customApiKey}
-                      onChange={(e) => setCustomApiKey(e.target.value)}
-                      className="h-8 text-xs font-mono"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      className="h-8 text-xs shrink-0 font-medium"
-                      onClick={() => {
-                        setApiKey(customApiKey);
-                        toast.success("Gemini API key saved in browser storage!");
-                        handleTestAiConnection();
-                      }}
-                    >
-                      Save & Test
-                    </Button>
+            {/* AI Engine Inbuilt Status */}
+            <div className="rounded-lg border border-border/70 bg-card/60 p-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                <Bot className="size-4 text-primary" />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-xs text-foreground">HireSense AI Placement Engine</span>
+                    <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                      Inbuilt & Ready
+                    </Badge>
                   </div>
                   <p className="text-[10px] text-muted-foreground">
-                    Tip: You can also add <code>VITE_GEMINI_API_KEY</code> in Vercel project environment variables.
+                    Automatic question generation & real-time evaluation
                   </p>
                 </div>
-              )}
-
-              {aiTestResult && (
-                <div
-                  className={`text-xs p-2.5 rounded-md flex items-center gap-2 ${
-                    aiTestResult.ok
-                      ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-medium"
-                      : "bg-destructive/10 border border-destructive/30 text-destructive"
-                  }`}
-                >
-                  {aiTestResult.ok ? (
-                    <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
-                  ) : (
-                    <CircleAlert className="size-4 shrink-0 text-destructive" />
-                  )}
-                  <span className="break-all">{aiTestResult.message}</span>
-                </div>
-              )}
+              </div>
+              <Badge variant="outline" className="text-[10px] font-mono border-border text-muted-foreground">
+                gemini-3.6-flash
+              </Badge>
             </div>
 
             <Button onClick={handleStart} disabled={busy} size="lg" className="w-full gap-2 font-semibold">
