@@ -459,17 +459,29 @@ function InterviewBody() {
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           {/* LEFT: LIVE WEBCAM & AI INTERVIEWER */}
           <div className="space-y-4">
-            {/* Webcam feed */}
-            <Card className="overflow-hidden bg-black/90 border-2 border-primary/20 shadow-lg relative">
-              <div className="relative aspect-video w-full flex items-center justify-center bg-slate-950">
+            {/* Realistic HUD Webcam Feed Arena */}
+            <Card className="overflow-hidden bg-black/95 border-2 border-primary/30 shadow-xl relative group">
+              <div className="relative aspect-video w-full flex items-center justify-center bg-slate-950 overflow-hidden">
+                {/* 4 Corner Targeting Reticles */}
+                <div className="absolute top-2 left-2 size-3.5 border-t-2 border-l-2 border-cyan-400/80 z-20 pointer-events-none" />
+                <div className="absolute top-2 right-2 size-3.5 border-t-2 border-r-2 border-cyan-400/80 z-20 pointer-events-none" />
+                <div className="absolute bottom-2 left-2 size-3.5 border-b-2 border-l-2 border-cyan-400/80 z-20 pointer-events-none" />
+                <div className="absolute bottom-2 right-2 size-3.5 border-b-2 border-r-2 border-cyan-400/80 z-20 pointer-events-none" />
+
                 {enableCamera && isCameraOn && !mediaError ? (
-                  <video
-                    ref={attachVideo}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover scale-x-[-1]"
-                  />
+                  <>
+                    <video
+                      ref={attachVideo}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover scale-x-[-1]"
+                    />
+                    {/* Subtle Face Alignment Guide */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-25">
+                      <div className="w-36 h-48 rounded-[50%] border border-dashed border-cyan-400" />
+                    </div>
+                  </>
                 ) : mediaError ? (
                   <div className="flex flex-col items-center justify-center text-center p-6 bg-red-950/60 border border-red-500/40 rounded-lg text-white max-w-sm m-auto z-10">
                     <CircleAlert className="size-10 text-red-400 mb-2" />
@@ -486,31 +498,39 @@ function InterviewBody() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
+                  <div className="flex flex-col items-center justify-center text-muted-foreground p-6 text-center z-10">
                     <CameraOff className="size-12 mb-2 opacity-50 text-white" />
                     <p className="text-sm font-medium text-white">Camera is turned off</p>
                     <p className="text-xs text-slate-400 mt-1">Click the camera button below to turn it on</p>
                   </div>
                 )}
 
-                {/* Overlays */}
-                <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-xs text-white">
+                {/* HUD Telemetry: Top Left REC Status */}
+                <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-xs text-white z-20 border border-white/10">
                   <span className="size-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="font-semibold tracking-wide">REC</span>
+                  <span className="font-mono text-[11px] font-semibold tracking-wide">REC • 1080p</span>
                 </div>
 
-                <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs text-white">
-                  <UserIcon className="size-3.5 text-primary" />
-                  <span>{user?.name || "Candidate"}</span>
+                {/* HUD Telemetry: Top Right Diagnostics */}
+                <div className="absolute top-3 right-3 hidden sm:flex items-center gap-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-mono text-cyan-300 z-20 border border-white/10">
+                  <span className="size-1.5 rounded-full bg-emerald-400" />
+                  <span>AI Latency: 14ms</span>
                 </div>
 
-                {/* Video controls */}
-                <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                {/* Candidate Tag: Bottom Left */}
+                <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full text-xs text-white z-20 border border-white/10">
+                  <UserIcon className="size-3.5 text-cyan-400" />
+                  <span className="font-medium text-[11px]">{user?.name || "Candidate"}</span>
+                </div>
+
+                {/* Video controls: Bottom Right */}
+                <div className="absolute bottom-3 right-3 flex items-center gap-2 z-20">
                   <button
                     type="button"
                     onClick={toggleCamera}
-                    className={`p-2 rounded-full backdrop-blur-md transition-colors ${isCameraOn ? "bg-black/60 text-white hover:bg-black/80" : "bg-red-600 text-white"
-                      }`}
+                    className={`p-2 rounded-full backdrop-blur-md transition-all ${
+                      isCameraOn ? "bg-black/70 text-white hover:bg-black/90 border border-white/10" : "bg-red-600 text-white"
+                    }`}
                     title={isCameraOn ? "Turn off camera" : "Turn on camera"}
                   >
                     {isCameraOn ? <Camera className="size-4" /> : <CameraOff className="size-4" />}
@@ -518,8 +538,9 @@ function InterviewBody() {
                   <button
                     type="button"
                     onClick={toggleMic}
-                    className={`p-2 rounded-full backdrop-blur-md transition-colors ${isMicOn ? "bg-black/60 text-white hover:bg-black/80" : "bg-red-600 text-white"
-                      }`}
+                    className={`p-2 rounded-full backdrop-blur-md transition-all ${
+                      isMicOn ? "bg-black/70 text-white hover:bg-black/90 border border-white/10" : "bg-red-600 text-white"
+                    }`}
                     title={isMicOn ? "Mute mic" : "Unmute mic"}
                   >
                     {isMicOn ? <Mic className="size-4" /> : <MicOff className="size-4" />}

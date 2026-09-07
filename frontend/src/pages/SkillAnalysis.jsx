@@ -665,6 +665,83 @@ function SkillBody() {
           </CardHeader>
 
           <CardContent className="p-5 space-y-6">
+            {/* Interactive Node-Based Competency Constellation Graph */}
+            <div className="rounded-xl border border-border/80 bg-secondary/20 p-4 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                  <Sparkles className="size-3.5 text-primary" /> Placement Competency Constellation & Roadmap
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground">4 Core Milestones</span>
+              </div>
+
+              {/* 4 Node Steps with Visual Status */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
+                {[
+                  {
+                    step: "01",
+                    title: "Languages & Core",
+                    desc: "Java / Python / OOP / DSA",
+                    skills: ["Java", "Python", "C++", "C", "Data Structures", "Algorithms", "OOP", "JavaScript", "TypeScript"],
+                  },
+                  {
+                    step: "02",
+                    title: "Frameworks & APIs",
+                    desc: "Spring Boot / React / REST",
+                    skills: ["Spring Boot", "Hibernate", "REST APIs", "Microservices", "React", "Node.js", "Express.js"],
+                  },
+                  {
+                    step: "03",
+                    title: "Data & Storage",
+                    desc: "SQL / DBMS / Redis / Mongo",
+                    skills: ["SQL", "DBMS", "MySQL", "PostgreSQL", "MongoDB", "Redis"],
+                  },
+                  {
+                    step: "04",
+                    title: "Cloud & Delivery",
+                    desc: "AWS / Docker / Git / CI-CD",
+                    skills: ["Git", "Docker", "AWS", "Kubernetes", "Linux", "CI/CD", "System Design"],
+                  },
+                ].map((node) => {
+                  const acquiredCount = node.skills.filter((s) =>
+                    currentSkills.some((cs) => cs.toLowerCase() === s.toLowerCase())
+                  ).length;
+                  const isNodeActive = acquiredCount > 0;
+
+                  return (
+                    <div
+                      key={node.step}
+                      className={`p-3 rounded-xl border transition-all text-xs relative ${
+                        isNodeActive
+                          ? "bg-card border-primary/40 shadow-sm shadow-primary/10"
+                          : "bg-secondary/40 border-border/60 opacity-60"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          isNodeActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                        }`}>
+                          STAGE {node.step}
+                        </span>
+                        {isNodeActive ? (
+                          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                        ) : (
+                          <span className="size-2 rounded-full bg-muted-foreground/40" />
+                        )}
+                      </div>
+                      <h5 className="font-semibold text-xs text-foreground truncate">{node.title}</h5>
+                      <p className="text-[10px] text-muted-foreground truncate">{node.desc}</p>
+                      <div className="mt-2 text-[10px] font-medium flex items-center justify-between text-muted-foreground">
+                        <span>{acquiredCount} active</span>
+                        <span className={isNodeActive ? "text-emerald-500 font-bold" : ""}>
+                          {isNodeActive ? "Illuminated" : "Locked"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* MANDATORY COMPETENCIES */}
             <div>
               <div className="flex items-center justify-between mb-2.5">

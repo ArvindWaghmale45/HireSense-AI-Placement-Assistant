@@ -1,12 +1,27 @@
 import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Card3D } from "@/components/ui/Card3D";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeResume } from "@/lib/api/resume";
-import { Upload, FileCheck2, CheckCircle2, AlertCircle, Sparkles, BrainCircuit, FolderGit2 } from "lucide-react";
+import {
+  Upload,
+  FileCheck2,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  BrainCircuit,
+  FolderGit2,
+  ScanLine,
+  Layers,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
 
 export default function ResumeAnalyzer() {
   return (
@@ -28,7 +43,7 @@ function ResumeBody() {
     try {
       const result = await analyzeResume(file);
       setAnalysis(result);
-      toast.success("Resume analyzed successfully!");
+      toast.success("Resume scanned & evaluated with neural ATS heuristics!");
       if (user) {
         await patchProfile({
           resumeFileName: result.fileName,
@@ -45,23 +60,40 @@ function ResumeBody() {
     }
   };
 
+  // Radial score gauge constants
+  const radius = 54;
+  const circumference = 2 * Math.PI * radius;
+  const score = analysis?.score ?? 0;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
-        title="Resume Analyzer"
-        subtitle="Get an instant ATS readiness score, detected skills, and key areas to enhance."
+        badge="Neural Document Scanner"
+        title="3D Resume ATS Analyzer"
+        subtitle="Upload your resume to trigger laser-assisted skill extraction, campus hiring ATS scoring, and actionable rubric feedback."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_1.5fr]">
+        {/* LEFT COLUMN: 3D LASER SCAN DROPZONE & EXTRACTED PROFILE */}
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Upload Resume</CardTitle>
-              <CardDescription>Upload PDF, DOCX, or TXT format</CardDescription>
+          <Card className="border-border/80 bg-card overflow-hidden relative shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-display flex items-center gap-2">
+                  <ScanLine className="size-4 text-primary" /> Document Laser Dropzone
+                </CardTitle>
+                <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+                  PDF • DOCX • TXT
+                </Badge>
+              </div>
+              <CardDescription className="text-xs">
+                Drop your updated resume file for real-time semantic analysis.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div
-                className="rounded-lg border-2 border-dashed border-border bg-secondary/30 p-8 text-center cursor-pointer hover:bg-secondary/50 transition-colors"
+                className="relative rounded-xl border-2 border-dashed border-border/80 bg-secondary/20 p-8 text-center cursor-pointer hover:bg-secondary/40 hover:border-primary/50 transition-all overflow-hidden group"
                 onClick={() => fileRef.current?.click()}
                 role="button"
                 tabIndex={0}
@@ -74,121 +106,245 @@ function ResumeBody() {
                   className="hidden"
                   onChange={(e) => handleUpload(e.target.files?.[0])}
                 />
+
+                {/* 3D Vertical Laser Scanning Beam Animation */}
+                {parsing && (
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none z-30">
+                    <div className="absolute inset-0 bg-primary/10 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px] opacity-40" />
+                    <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_rgba(34,211,238,0.9)] animate-scan-laser" />
+                  </div>
+                )}
+
                 {parsing ? (
-                  <div className="space-y-2">
-                    <Sparkles className="mx-auto size-8 animate-spin text-primary" />
-                    <p className="text-sm font-medium">Extracting skills & evaluating ATS score…</p>
+                  <div className="space-y-3 py-4">
+                    <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto text-primary animate-pulse">
+                      <Sparkles className="size-6 animate-spin" />
+                    </div>
+                    <p className="text-sm font-semibold text-primary">Laser Scanner Active…</p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Extracting technical tokens, education & experience…
+                    </p>
                   </div>
                 ) : analysis ? (
-                  <div className="space-y-2">
-                    <FileCheck2 className="mx-auto size-8 text-primary" />
-                    <p className="text-sm font-semibold">{analysis.fileName}</p>
-                    <p className="text-xs text-muted-foreground">Click to upload a different resume</p>
+                  <div className="space-y-2.5 py-3">
+                    <div className="size-12 rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center mx-auto shadow-xs">
+                      <FileCheck2 className="size-6" />
+                    </div>
+                    <p className="text-sm font-bold text-foreground truncate max-w-xs mx-auto">
+                      {analysis.fileName}
+                    </p>
+                    <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                      ✓ Scanned Successfully
+                    </Badge>
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Click to upload another version
+                    </p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <Upload className="mx-auto size-8 text-muted-foreground" />
-                    <p className="text-sm font-medium">Click to select or drop your resume</p>
-                    <p className="text-xs text-muted-foreground">Supports PDF, DOCX, TXT</p>
+                  <div className="space-y-3 py-4">
+                    <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                      <Upload className="size-6" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        Drop your resume here or browse
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        High-speed parsing for campus placement readiness
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
 
               {user?.resumeFileName && !analysis && (
-                <div className="mt-4 p-3 rounded-lg border border-border bg-muted/40 text-sm">
-                  <span className="text-muted-foreground">Current resume on profile: </span>
-                  <span className="font-medium text-foreground">{user.resumeFileName}</span>
+                <div className="mt-4 p-3 rounded-lg border border-border/80 bg-muted/40 text-xs flex items-center justify-between">
+                  <span className="text-muted-foreground">Active profile resume:</span>
+                  <span className="font-semibold text-foreground font-mono truncate max-w-[180px]">
+                    {user.resumeFileName}
+                  </span>
                 </div>
               )}
             </CardContent>
           </Card>
 
+          {/* Profile Extraction Details Card */}
           {analysis && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Extracted Profile Info</CardTitle>
+            <Card className="border-border/80">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-display flex items-center gap-2">
+                  <Layers className="size-4 text-primary" /> Parsed Candidate Telemetry
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Candidate Name: </span>
-                  <span className="font-medium">{analysis.name || user?.name}</span>
+              <CardContent className="space-y-3 text-xs">
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30 border border-border/60">
+                  <span className="text-muted-foreground">Candidate Name:</span>
+                  <span className="font-semibold">{analysis.name || user?.name || "Candidate"}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Education: </span>
-                  <span className="font-medium">{analysis.education || user?.education || "Not specified"}</span>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30 border border-border/60">
+                  <span className="text-muted-foreground">Education Degree:</span>
+                  <span className="font-semibold">{analysis.education || user?.education || "Not specified"}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Inferred Target Role: </span>
-                  <span className="font-medium">{analysis.targetRole || user?.targetRole || "Software Engineer"}</span>
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/30 border border-border/60">
+                  <span className="text-muted-foreground">Inferred Target Role:</span>
+                  <Badge variant="outline" className="border-primary/40 text-primary">
+                    {analysis.targetRole || user?.targetRole || "Software Engineer"}
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
           )}
         </div>
 
+        {/* RIGHT COLUMN: 3D ATS RADIAL SCORE GAUGE & INTERACTIVE SKILL CHIPS */}
         <div>
           {analysis ? (
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-lg">
-                    <span>ATS Readiness Score</span>
-                    <span className="font-display text-2xl font-bold text-primary">{analysis.score}/100</span>
-                  </CardTitle>
-                  <CardDescription>
-                    {analysis.score >= 75
-                      ? "Excellent! Your resume covers core requirements well."
-                      : analysis.score >= 50
-                      ? "Moderate match. Consider adding more project details and missing keywords."
-                      : "Needs improvement. Fill missing core competencies to stand out."}
+              {/* Circular Holographic ATS Score Gauge */}
+              <Card className="border-primary/25 bg-gradient-to-br from-card via-card/90 to-primary/5 shadow-md">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-display flex items-center gap-2">
+                      <ShieldCheck className="size-5 text-primary" /> ATS Placement Readiness Gauge
+                    </CardTitle>
+                    <Badge
+                      variant="secondary"
+                      className={`text-xs ${
+                        score >= 75
+                          ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
+                          : score >= 50
+                          ? "bg-primary/15 text-primary border border-primary/30"
+                          : "bg-amber-500/15 text-amber-500 border border-amber-500/30"
+                      }`}
+                    >
+                      {score >= 75 ? "Tier 1 ATS Match" : score >= 50 ? "Solid Baseline" : "Action Needed"}
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Calibrated with modern automated screening filters used by Fortune 500 recruiting teams.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Progress value={analysis.score} className="h-3" />
+                <CardContent className="pt-2">
+                  <div className="flex flex-col sm:flex-row items-center gap-6 justify-around">
+                    {/* Animated Circular Gauge */}
+                    <div className="relative size-36 flex items-center justify-center">
+                      <svg className="size-full -rotate-90" viewBox="0 0 130 130">
+                        <circle
+                          cx="65"
+                          cy="65"
+                          r={radius}
+                          className="stroke-muted/40"
+                          strokeWidth="9"
+                          fill="transparent"
+                        />
+                        <motion.circle
+                          cx="65"
+                          cy="65"
+                          r={radius}
+                          className={
+                            score >= 75
+                              ? "stroke-emerald-500"
+                              : score >= 50
+                              ? "stroke-primary"
+                              : "stroke-amber-500"
+                          }
+                          strokeWidth="9"
+                          strokeDasharray={circumference}
+                          initial={{ strokeDashoffset: circumference }}
+                          animate={{ strokeDashoffset }}
+                          transition={{ duration: 1.2, ease: "easeOut" }}
+                          strokeLinecap="round"
+                          fill="transparent"
+                          style={{
+                            filter: "drop-shadow(0 0 6px rgba(59, 130, 246, 0.4))",
+                          }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                        <span className="font-display text-3xl font-extrabold tracking-tight">
+                          {score}
+                        </span>
+                        <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">
+                          out of 100
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-xs max-w-sm text-center sm:text-left">
+                      <h4 className="font-semibold text-sm">
+                        {score >= 75
+                          ? "High ATS Pass Probability"
+                          : score >= 50
+                          ? "Moderate Match with Growth Potential"
+                          : "Critical Keywords Missing"}
+                      </h4>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {score >= 75
+                          ? "Your resume strongly emphasizes core engineering competencies, frameworks, and actionable project bullets."
+                          : score >= 50
+                          ? "Decent foundation. Ensure measurable metrics (e.g., % throughput, latency) accompany your project descriptions."
+                          : "Include specific language keywords (Java, SQL, Spring Boot) and quantify outcomes to clear automated recruiter screening."}
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <BrainCircuit className="size-4 text-primary" />
-                    Detected Skills ({analysis.skills.length})
-                  </CardTitle>
+              {/* Interactive 3D Skill Pill Tags */}
+              <Card className="border-border/80">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-display flex items-center gap-2">
+                      <BrainCircuit className="size-4 text-primary" /> Detected Skills ({analysis.skills.length})
+                    </CardTitle>
+                    <span className="text-[11px] text-muted-foreground">
+                      Auto-synced to your placement profile
+                    </span>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {analysis.skills.map((skill) => (
-                      <Badge key={skill} variant="secondary">
-                        {skill}
-                      </Badge>
+                      <motion.div
+                        key={skill}
+                        whileHover={{ scale: 1.08, y: -2 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-primary/30 bg-primary/10 text-primary shadow-xs cursor-default transition-colors hover:bg-primary/20"
+                      >
+                        <CheckCircle2 className="size-3 text-primary" />
+                        <span>{skill}</span>
+                      </motion.div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Projects Breakdown */}
               {analysis.projects && analysis.projects.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <FolderGit2 className="size-4 text-primary" />
-                      Extracted Projects ({analysis.projects.length})
+                <Card className="border-border/80">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-display flex items-center gap-2">
+                      <FolderGit2 className="size-4 text-primary" /> Highlighted Projects ({analysis.projects.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {analysis.projects.map((proj, idx) => (
-                      <div key={idx} className="p-3 rounded-lg border border-border bg-card/60">
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-xl border border-border/80 bg-card/60 space-y-1.5"
+                      >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <h4 className="font-semibold text-sm">{proj.title}</h4>
                           <div className="flex flex-wrap gap-1">
                             {(proj.techStack || []).map((t) => (
-                              <Badge key={t} variant="outline" className="text-[10px] py-0">
+                              <Badge key={t} variant="outline" className="text-[10px] py-0 border-primary/30 text-primary">
                                 {t}
                               </Badge>
                             ))}
                           </div>
                         </div>
                         {proj.description && (
-                          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             {proj.description}
                           </p>
                         )}
@@ -198,32 +354,39 @@ function ResumeBody() {
                 </Card>
               )}
 
+              {/* Strengths & Recommendations */}
               <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-primary" /> Key Strengths
+                <Card className="border-emerald-500/30 bg-emerald-500/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 className="size-4" /> Detected Strengths
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ul className="list-inside list-disc space-y-2 text-sm text-muted-foreground">
+                    <ul className="space-y-2 text-xs text-muted-foreground">
                       {analysis.strengths.map((s) => (
-                        <li key={s}>{s}</li>
+                        <li key={s} className="flex items-start gap-2">
+                          <span className="text-emerald-500 mt-0.5">•</span>
+                          <span>{s}</span>
+                        </li>
                       ))}
                     </ul>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <AlertCircle className="size-4 text-amber-500" /> Recommendations
+                <Card className="border-amber-500/30 bg-amber-500/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                      <AlertCircle className="size-4" /> Recommended Additions
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ul className="list-inside list-disc space-y-2 text-sm text-muted-foreground">
+                    <ul className="space-y-2 text-xs text-muted-foreground">
                       {analysis.suggestions.map((s) => (
-                        <li key={s}>{s}</li>
+                        <li key={s} className="flex items-start gap-2">
+                          <span className="text-amber-500 mt-0.5">•</span>
+                          <span>{s}</span>
+                        </li>
                       ))}
                     </ul>
                   </CardContent>
@@ -231,18 +394,20 @@ function ResumeBody() {
               </div>
             </div>
           ) : (
-            <Card className="h-full flex items-center justify-center min-h-[300px]">
+            <Card className="h-full flex items-center justify-center min-h-[360px] border-dashed">
               <CardContent className="text-center py-12">
-                <FileCheck2 className="mx-auto size-12 text-muted-foreground mb-3 opacity-40" />
-                <h3 className="font-semibold text-lg">No resume analyzed yet</h3>
-                <p className="text-sm text-muted-foreground max-w-sm mt-1">
-                  Upload your resume on the left to see your ATS score, detected skills, and personalized feedback.
+                <div className="size-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+                  <ScanLine className="size-8" />
+                </div>
+                <h3 className="font-display font-bold text-lg">No Resume Scanned Yet</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1.5 leading-relaxed">
+                  Upload your CV or technical resume on the left to start the 3D laser scan and receive instant ATS scoring & rubric fixes.
                 </p>
               </CardContent>
             </Card>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

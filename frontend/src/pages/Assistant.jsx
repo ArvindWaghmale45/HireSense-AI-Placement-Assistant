@@ -1,8 +1,11 @@
 import { useEffect, useState, useRef } from "react";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import {
   listThreads,
@@ -10,7 +13,20 @@ import {
   deleteThread,
   sendChatMessage,
 } from "@/lib/api/assistant";
-import { Bot, Send, Plus, Trash2, User, Sparkles } from "lucide-react";
+import {
+  Bot,
+  Send,
+  Plus,
+  Trash2,
+  User,
+  Sparkles,
+  Terminal,
+  Copy,
+  Check,
+  Zap,
+  Code2,
+  ChevronRight,
+} from "lucide-react";
 
 export default function Assistant() {
   return (
@@ -39,7 +55,7 @@ function AssistantBody() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [threads, activeThreadId]);
+  }, [threads, activeThreadId, busy]);
 
   if (!user) return null;
 
@@ -87,48 +103,51 @@ function AssistantBody() {
   };
 
   const suggestions = [
-    "Give me a 30-day placement preparation plan",
-    "Explain OOP Polymorphism with Java examples",
-    "How should I explain my final year project to HR?",
-    "What are commonly asked SQL interview questions?",
+    "Give me a 30-day placement preparation timetable for Java Full Stack",
+    "Explain Polymorphism vs Abstraction with real Java production examples",
+    "How do I explain my final year project architecture during an HR round?",
+    "What are the most commonly asked SQL query questions in technical interviews?",
   ];
 
   return (
-    <>
+    <div className="space-y-4">
       <PageHeader
-        title="AI Career Assistant"
-        subtitle="Ask anything about preparation, concepts, study plans, or placement rounds."
+        badge="Neural Career Cockpit"
+        title="AI Career Assistant & Mentor"
+        subtitle="24/7 technical interviewer & code tutor for DSA, system architecture, behavioral STAR stories, and placement study plans."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr] h-[calc(100vh-220px)] min-h-[500px]">
-        {/* Sidebar */}
-        <Card className="flex flex-col h-full overflow-hidden">
-          <div className="p-4 border-b border-border">
-            <Button onClick={handleNewChat} className="w-full gap-2" size="sm">
-              <Plus className="size-4" /> New Conversation
+      {/* Terminal Cockpit Container */}
+      <div className="grid gap-4 lg:grid-cols-[280px_1fr] h-[calc(100vh-230px)] min-h-[520px]">
+        {/* Left: Chat Session Threads Navigation */}
+        <Card className="flex flex-col h-full overflow-hidden border-border/80 bg-card/80 backdrop-blur-md">
+          <div className="p-3 border-b border-border/80 flex items-center justify-between">
+            <Button onClick={handleNewChat} className="w-full gap-2 text-xs font-semibold shadow-xs" size="sm">
+              <Plus className="size-3.5" /> New Session
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-none">
             {threads.length === 0 ? (
-              <p className="p-4 text-center text-xs text-muted-foreground">
-                No chats yet. Click above to start one!
-              </p>
+              <div className="p-6 text-center text-xs text-muted-foreground">
+                No active conversations yet. Click New Session above!
+              </div>
             ) : (
               threads.map((thread) => (
                 <div
                   key={thread.id}
                   onClick={() => setActiveThreadId(thread.id)}
-                  className={`group flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer transition-colors ${
+                  className={`group flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-all ${
                     activeThreadId === thread.id
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                      : "hover:bg-secondary/60 text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <span className="truncate pr-2">{thread.title}</span>
                   <button
+                    type="button"
                     onClick={(e) => handleDelete(thread.id, e)}
                     className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                    title="Delete conversation"
+                    title="Delete session"
                   >
                     <Trash2 className="size-3.5" />
                   </button>
@@ -138,27 +157,49 @@ function AssistantBody() {
           </div>
         </Card>
 
-        {/* Chat Area */}
-        <Card className="flex flex-col h-full overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Right: Cockpit Chat Display Area */}
+        <Card className="flex flex-col h-full overflow-hidden border-border/80 bg-card relative shadow-sm">
+          {/* Terminal Top Bar */}
+          <div className="h-10 px-4 border-b border-border/80 bg-secondary/30 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <span className="size-2.5 rounded-full bg-red-500/80" />
+              <span className="size-2.5 rounded-full bg-amber-500/80" />
+              <span className="size-2.5 rounded-full bg-emerald-500/80" />
+              <span className="font-mono text-[11px] text-muted-foreground ml-2">
+                hiresense-neural-shell: v2.4
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-500">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>AI Engine Online</span>
+            </div>
+          </div>
+
+          {/* Messages Stream */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             {!activeThread || activeThread.messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3">
-                  <Sparkles className="size-6" />
+              <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8">
+                <div className="size-14 rounded-2xl bg-gradient-to-tr from-primary to-cyan-500 text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/25 mb-4">
+                  <Terminal className="size-7" />
                 </div>
-                <h3 className="font-semibold text-lg">How can I help your preparation today?</h3>
-                <p className="text-sm text-muted-foreground max-w-md mt-1 mb-6">
-                  Ask conceptual doubts, request personalized schedules, or practice sample answers.
+                <h3 className="font-display font-bold text-xl">How can I assist your placement prep today?</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-md mt-1.5 mb-6 leading-relaxed">
+                  Clarify DSA concepts, generate customized 30-day revision schedules, or rehearse answers for final rounds.
                 </p>
-                <div className="grid gap-2 sm:grid-cols-2 max-w-lg w-full text-left">
+
+                {/* Floating Suggestion Chips */}
+                <div className="grid gap-2.5 sm:grid-cols-2 max-w-xl w-full text-left">
                   {suggestions.map((s) => (
-                    <button
+                    <motion.button
                       key={s}
+                      whileHover={{ y: -2, scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => handleSend(s)}
-                      className="p-3 rounded-lg border border-border text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                      className="p-3 rounded-xl border border-border/80 bg-secondary/30 hover:border-primary/50 hover:bg-secondary/60 text-xs text-muted-foreground hover:text-foreground transition-all flex items-center justify-between gap-2 text-left"
                     >
-                      {s}
-                    </button>
+                      <span className="line-clamp-2">{s}</span>
+                      <ChevronRight className="size-3.5 shrink-0 text-primary" />
+                    </motion.button>
                   ))}
                 </div>
               </div>
@@ -171,15 +212,15 @@ function AssistantBody() {
                   }`}
                 >
                   {msg.role === "assistant" && (
-                    <div className="size-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="size-8 shrink-0 rounded-xl bg-gradient-to-tr from-primary to-cyan-500 text-primary-foreground flex items-center justify-center shadow-xs">
                       <Bot className="size-4" />
                     </div>
                   )}
                   <div
-                    className={`rounded-xl px-4 py-3 max-w-[85%] text-sm shadow-sm ${
+                    className={`rounded-xl px-4 py-3 max-w-[85%] text-xs sm:text-sm shadow-xs ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground font-medium"
-                        : "bg-card text-foreground border border-border/80"
+                        : "bg-secondary/40 text-foreground border border-border/80"
                     }`}
                   >
                     {msg.role === "assistant" ? (
@@ -189,17 +230,30 @@ function AssistantBody() {
                     )}
                   </div>
                   {msg.role === "user" && (
-                    <div className="size-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-foreground">
+                    <div className="size-8 shrink-0 rounded-xl bg-secondary flex items-center justify-center text-foreground font-semibold text-xs border border-border">
                       <User className="size-4" />
                     </div>
                   )}
                 </div>
               ))
             )}
+
+            {busy && (
+              <div className="flex gap-3 justify-start items-center">
+                <div className="size-8 shrink-0 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                  <Bot className="size-4 animate-spin" />
+                </div>
+                <div className="rounded-xl px-4 py-2.5 bg-secondary/40 border border-border/80 text-xs text-muted-foreground flex items-center gap-2">
+                  <span className="size-1.5 rounded-full bg-primary animate-ping" />
+                  <span>Synthesizing placement response…</span>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-3 border-t border-border bg-card">
+          {/* Input Control Console */}
+          <div className="p-3 border-t border-border/80 bg-card">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -210,18 +264,18 @@ function AssistantBody() {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about placement topics, DSA, Spring Boot, HR questions…"
+                placeholder="Ask about Java concepts, DSA, system design, or behavioral questions…"
                 disabled={busy}
-                className="flex-1"
+                className="flex-1 text-xs sm:text-sm"
               />
-              <Button type="submit" disabled={busy || !input.trim()} size="icon">
+              <Button type="submit" disabled={busy || !input.trim()} size="icon" className="shadow-xs">
                 <Send className="size-4" />
               </Button>
             </form>
           </div>
         </Card>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -232,22 +286,13 @@ function FormattedMessage({ content }) {
   const segments = content.split(/(```[\s\S]*?```)/g);
 
   return (
-    <div className="space-y-2.5 text-sm leading-relaxed">
+    <div className="space-y-2.5 text-xs sm:text-sm leading-relaxed">
       {segments.map((seg, sIdx) => {
         if (seg.startsWith("```")) {
           const firstLineEnd = seg.indexOf("\n");
           const lang = seg.slice(3, firstLineEnd).trim();
           const code = seg.slice(firstLineEnd + 1, -3).trim();
-          return (
-            <div key={sIdx} className="my-2.5 rounded-lg overflow-hidden border border-border bg-muted/60 text-xs">
-              {lang && (
-                <div className="px-3 py-1 bg-muted font-mono text-[11px] text-muted-foreground border-b border-border">
-                  {lang}
-                </div>
-              )}
-              <pre className="p-3 overflow-x-auto font-mono text-primary font-medium">{code}</pre>
-            </div>
-          );
+          return <CodeSnippet key={sIdx} lang={lang} code={code} />;
         }
 
         const lines = seg.split("\n");
@@ -260,7 +305,7 @@ function FormattedMessage({ content }) {
               <ul key={`list-${rendered.length}`} className="space-y-1 my-1.5 pl-1">
                 {currentList.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-foreground/90">
-                    <span className="size-1.5 rounded-full bg-primary mt-2 shrink-0" />
+                    <span className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                     <span className="flex-1">{renderInlineText(item)}</span>
                   </li>
                 ))}
@@ -277,13 +322,13 @@ function FormattedMessage({ content }) {
             return;
           }
 
-          // Bullet items (starts with * or - or •)
+          // Bullet items
           if (/^[\*\-•]\s+/.test(line)) {
             currentList.push(line.replace(/^[\*\-•]\s+/, ""));
             return;
           }
 
-          // Numbered list items (e.g. 1. or 2.)
+          // Numbered list items
           if (/^\d+[\.\)]\s+/.test(line)) {
             flushList();
             const num = line.match(/^(\d+[\.\)])\s+/)[1];
@@ -297,12 +342,12 @@ function FormattedMessage({ content }) {
             return;
           }
 
-          // Headings (starts with # or ###)
+          // Headings
           if (/^#{1,6}\s+/.test(line)) {
             flushList();
             const heading = line.replace(/^#{1,6}\s+/, "");
             rendered.push(
-              <h4 key={`h-${lIdx}`} className="font-semibold text-foreground text-sm mt-3 mb-1">
+              <h4 key={`h-${lIdx}`} className="font-bold text-foreground text-xs sm:text-sm mt-3 mb-1">
                 {renderInlineText(heading)}
               </h4>
             );
@@ -324,9 +369,42 @@ function FormattedMessage({ content }) {
   );
 }
 
+function CodeSnippet({ lang, code }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    toast.success("Code snippet copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="my-3 rounded-xl overflow-hidden border border-border/80 bg-slate-950 text-xs text-slate-100 shadow-md">
+      <div className="px-3.5 py-1.5 bg-slate-900 flex items-center justify-between border-b border-slate-800 text-[11px] font-mono text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <Code2 className="size-3 text-cyan-400" />
+          {lang || "code"}
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1 hover:text-white transition-colors"
+          title="Copy code"
+        >
+          {copied ? <Check className="size-3 text-emerald-400" /> : <Copy className="size-3" />}
+          <span>{copied ? "Copied" : "Copy"}</span>
+        </button>
+      </div>
+      <pre className="p-3.5 overflow-x-auto font-mono leading-relaxed text-cyan-300">
+        {code}
+      </pre>
+    </div>
+  );
+}
+
 function renderInlineText(text) {
   if (!text) return "";
-  // Parse bold and code cleanly, stripping raw stars and stray markdown symbols
   const tokens = text.split(/(\*\*.*?\*\*|`.*?`)/g);
   return tokens.map((token, idx) => {
     if (token.startsWith("**") && token.endsWith("**")) {
@@ -344,7 +422,6 @@ function renderInlineText(text) {
         </code>
       );
     }
-    // Clean out stray asterisks, hashtags, or markdown artifacts
     const cleaned = token.replace(/\*{2,}/g, "").replace(/^#{1,6}\s*/g, "");
     return cleaned;
   });
