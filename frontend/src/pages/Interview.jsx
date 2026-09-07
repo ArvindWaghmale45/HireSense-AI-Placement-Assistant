@@ -124,7 +124,6 @@ function InterviewBody() {
   const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
   const [testingAi, setTestingAi] = useState(false);
   const [aiTestResult, setAiTestResult] = useState(null);
-  const [isCameraCollapsedMobile, setIsCameraCollapsedMobile] = useState(false);
   const [customApiKey, setCustomApiKey] = useState(() => getApiKey() || "");
   const [showKeyInput, setShowKeyInput] = useState(() => !getApiKey());
 
@@ -386,10 +385,14 @@ function InterviewBody() {
       unlockAudioAndSpeech();
       playAudioCue("mic_on");
       if (isSpeechSupported) {
+        // Native Speech-to-Text: DO NOT concurrently call startRecording() as MediaRecorder locks hardware mic on mobile
         startListening();
+        toast.info("Microphone active. Speak your answer clearly.");
+      } else {
+        // Safe fallback for browsers without Web Speech recognition
+        await startRecording();
+        toast.info("Recording audio response. Tap stop when finished.");
       }
-      await startRecording();
-      toast.info("Microphone active. Speak your answer clearly.");
     }
   };
 
@@ -521,41 +524,12 @@ function InterviewBody() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-          {/* CANDIDATE WEBCAM & AI INTERVIEWER - order-2 on mobile so candidate sees question first */}
-          <div className="order-2 lg:order-1 space-y-4">
-            {/* Mobile Webcam Minimizer Bar (Visible only on screens < lg) */}
-            <div className="flex lg:hidden items-center justify-between p-2.5 px-3.5 rounded-xl border border-border bg-secondary/30">
-              <div className="flex items-center gap-2">
-                <span className={`size-2 rounded-full ${isCameraOn ? "bg-red-500 animate-pulse" : "bg-muted-foreground/50"}`} />
-                <span className="text-xs font-semibold text-foreground">Webcam Preview</span>
-                <Badge variant="outline" className="text-[10px]">
-                  {isCameraOn ? "Live" : "Off"}
-                </Badge>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="xs"
-                onClick={() => setIsCameraCollapsedMobile(!isCameraCollapsedMobile)}
-                className="text-xs h-7 gap-1 text-primary hover:text-primary/80"
-              >
-                {isCameraCollapsedMobile ? (
-                  <>
-                    Show Video <ChevronDown className="size-3.5" />
-                  </>
-                ) : (
-                  <>
-                    Minimize Video <ChevronUp className="size-3.5" />
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Video Feed (Collapsible on mobile) */}
-            <div className={isCameraCollapsedMobile ? "hidden lg:block" : "block"}>
-              <Card className="overflow-hidden bg-slate-950 border border-border/80 shadow-md relative group rounded-xl">
-              <div className="relative aspect-video w-full flex items-center justify-center bg-slate-950">
+        <div className="grid gap-5 lg:grid-cols-[1.05fr_1.45fr]">
+          {/* CANDIDATE WEBCAM & AI INTERVIEWER - On mobile: clean compact preview at the TOP; on desktop: left column */}
+          <div className="order-1 space-y-4">
+            {/* Video Feed */}
+            <Card className="overflow-hidden bg-slate-950 border border-border/80 shadow-md relative group rounded-xl">
+              <div className="relative aspect-video max-h-48 sm:max-h-56 lg:max-h-none w-full flex items-center justify-center bg-slate-950">
                 {enableCamera && isCameraOn && !mediaError ? (
                   <video
                     ref={attachVideo}
@@ -565,69 +539,68 @@ function InterviewBody() {
                     className="w-full h-full object-cover scale-x-[-1]"
                   />
                 ) : mediaError ? (
-                  <div className="flex flex-col items-center justify-center text-center p-6 bg-red-950/60 border border-red-500/40 rounded-lg text-white max-w-sm m-auto z-10">
-                    <CircleAlert className="size-10 text-red-400 mb-2" />
-                    <p className="text-sm font-semibold text-red-200">Camera Notice</p>
-                    <p className="text-xs text-red-300/90 mt-1.5 leading-relaxed">{mediaError}</p>
+                  <div className="flex flex-col items-center justify-center text-center p-4 bg-red-950/60 border border-red-500/40 rounded-lg text-white max-w-sm m-auto z-10">
+                    <CircleAlert className="size-8 text-red-400 mb-1.5" />
+                    <p className="text-xs sm:text-sm font-semibold text-red-200">Camera Notice</p>
+                    <p className="text-[11px] sm:text-xs text-red-300/90 mt-1 leading-relaxed">{mediaError}</p>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="mt-3 text-xs border-red-500/50 hover:bg-red-900/40 text-red-100"
+                      className="mt-2.5 text-xs border-red-500/50 hover:bg-red-900/40 text-red-100 h-7"
                       onClick={() => startStream()}
                     >
-                      <RotateCcw className="size-3.5 mr-1.5" />
+                      <RotateCcw className="size-3 mr-1" />
                       Retry Camera
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-muted-foreground p-6 text-center z-10">
-                    <CameraOff className="size-12 mb-2 opacity-50 text-white" />
-                    <p className="text-sm font-medium text-white">Camera is turned off</p>
-                    <p className="text-xs text-slate-400 mt-1">Click the camera button below to turn it on</p>
+                  <div className="flex flex-col items-center justify-center text-muted-foreground p-4 text-center z-10">
+                    <CameraOff className="size-10 mb-2 opacity-50 text-white" />
+                    <p className="text-xs sm:text-sm font-medium text-white">Camera is turned off</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Tap the camera button below to turn it on</p>
                   </div>
                 )}
 
                 {/* Status: Top Left Live Indicator */}
-                <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-xs text-white z-20 border border-white/10">
+                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-xs text-white z-20 border border-white/10">
                   <span className="size-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-[11px] font-medium tracking-wide">LIVE</span>
+                  <span className="text-[10px] font-semibold tracking-wider">LIVE</span>
                 </div>
 
                 {/* Candidate Tag: Bottom Left */}
-                <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full text-xs text-white z-20 border border-white/10">
-                  <UserIcon className="size-3.5 text-primary" />
-                  <span className="font-medium text-[11px]">{user?.name || "Candidate"}</span>
+                <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-xs text-white z-20 border border-white/10">
+                  <UserIcon className="size-3 text-primary" />
+                  <span className="font-medium text-[11px] truncate max-w-[120px]">{user?.name || "Candidate"}</span>
                 </div>
 
                 {/* Video controls: Bottom Right */}
-                <div className="absolute bottom-3 right-3 flex items-center gap-2 z-20">
+                <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 z-20">
                   <button
                     type="button"
                     onClick={toggleCamera}
-                    className={`p-2 rounded-full backdrop-blur-md transition-all ${
+                    className={`p-1.5 sm:p-2 rounded-full backdrop-blur-md transition-all ${
                       isCameraOn ? "bg-black/70 text-white hover:bg-black/90 border border-white/10" : "bg-red-600 text-white"
                     }`}
                     title={isCameraOn ? "Turn off camera" : "Turn on camera"}
                   >
-                    {isCameraOn ? <Camera className="size-4" /> : <CameraOff className="size-4" />}
+                    {isCameraOn ? <Camera className="size-3.5 sm:size-4" /> : <CameraOff className="size-3.5 sm:size-4" />}
                   </button>
                   <button
                     type="button"
                     onClick={toggleMic}
-                    className={`p-2 rounded-full backdrop-blur-md transition-all ${
+                    className={`p-1.5 sm:p-2 rounded-full backdrop-blur-md transition-all ${
                       isMicOn ? "bg-black/70 text-white hover:bg-black/90 border border-white/10" : "bg-red-600 text-white"
                     }`}
                     title={isMicOn ? "Mute mic" : "Unmute mic"}
                   >
-                    {isMicOn ? <Mic className="size-4" /> : <MicOff className="size-4" />}
+                    {isMicOn ? <Mic className="size-3.5 sm:size-4" /> : <MicOff className="size-3.5 sm:size-4" />}
                   </button>
                 </div>
               </div>
             </Card>
-            </div>
 
-            {/* AI Interviewer Audio Card with Animated Equalizer Soundwave Visualizer */}
-            <Card className="border-border/80 bg-card overflow-hidden relative shadow-sm">
+            {/* AI Interviewer Audio Card with Animated Equalizer (Visible on desktop; streamlined into Question Card on mobile) */}
+            <Card className="hidden lg:block border-border/80 bg-card overflow-hidden relative shadow-sm">
               {isSpeakingQuestion && (
                 <div className="absolute inset-0 bg-primary/5 pointer-events-none transition-colors" />
               )}
@@ -723,8 +696,8 @@ function InterviewBody() {
 
           </div>
 
-          {/* RIGHT: QUESTION & VOICE-TO-TEXT ANSWER WITH SMOOTH TRANSITION - order-1 on mobile so it is at top! */}
-          <div className="order-1 lg:order-2 space-y-4">
+          {/* RIGHT / SECOND: QUESTION & ANSWER SECTION (Sits directly underneath video on mobile) */}
+          <div className="order-2 space-y-4">
             <AnimatePresence mode="wait">
               <motion.div
                 key={current?.id || index}
@@ -736,9 +709,16 @@ function InterviewBody() {
                 <Card className="border-border shadow-xs">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2">
-                      <Badge variant="secondary" className="font-medium text-xs">
-                        {current.skill}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="font-medium text-xs">
+                          {current.skill}
+                        </Badge>
+                        {isSpeakingQuestion && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Speaking
+                          </span>
+                        )}
+                      </div>
                       
                       {/* Prominent Direct Audio Playback Button directly on Question Card */}
                       <Button
@@ -746,7 +726,11 @@ function InterviewBody() {
                         variant={isSpeakingQuestion ? "destructive" : "outline"}
                         size="sm"
                         onClick={handleSpeakQuestion}
-                        className="h-8 gap-1.5 text-xs shadow-xs font-medium shrink-0"
+                        className={`h-8 gap-1.5 text-xs shadow-xs font-medium shrink-0 transition-colors ${
+                          isSpeakingQuestion
+                            ? "bg-red-500/15 text-red-500 border-red-500/30 hover:bg-red-500/25"
+                            : "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                        }`}
                         title="Tap to listen to AI Interviewer speak this question"
                       >
                         {isSpeakingQuestion ? (
@@ -755,12 +739,12 @@ function InterviewBody() {
                           </>
                         ) : (
                           <>
-                            <Volume2 className="size-3.5 text-primary" /> 🔊 Hear AI Voice
+                            <Volume2 className="size-3.5" /> 🔊 Listen to Question
                           </>
                         )}
                       </Button>
                     </div>
-                    <CardTitle className="mt-2 text-lg sm:text-xl font-display leading-snug text-foreground">
+                    <CardTitle className="mt-2 text-base sm:text-xl font-display leading-snug text-foreground">
                       {current.text}
                     </CardTitle>
                     <CardDescription className="text-xs">

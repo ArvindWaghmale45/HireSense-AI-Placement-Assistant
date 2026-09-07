@@ -410,13 +410,33 @@ export function speakQuestion(text, onEnd) {
     return;
   }
 
-  // Speak directly using Web Speech API with global garbage-collection prevention
-  speakWithIndianMaleSynthesis(cleanText, onEnd);
+  // Pre-emptively resume/unlock speech synthesis state synchronously
+  if ("speechSynthesis" in window) {
+    try {
+      window.speechSynthesis.resume();
+    } catch {}
+  }
+
+  const phrases = splitIntoNaturalPhrases(cleanText);
+  if (!phrases || phrases.length === 0) {
+    speakWithIndianMaleSynthesis(cleanText, onEnd);
+    return;
+  }
+
+  // Try real backend Indian male MP3 stream first (highest quality & universally supported on mobile)
+  speakWithAudioStream(
+    phrases,
+    onEnd,
+    () => {
+      // Fallback seamlessly to native browser speech synthesis if backend is offline/unreachable
+      speakWithIndianMaleSynthesis(cleanText, onEnd);
+    }
+  );
 }
 
 /**
  * Speaks text using the device's native high-performance SpeechSynthesis engine.
- * Guaranteed zero-latency, full sentence clarity, and immune to network stream drops.
+ * Guaranteed zero-latency, synchronous user gesture preservation, and Chromium GC protection.
  */
 function speakWithIndianMaleSynthesis(text, onEnd) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -433,7 +453,7 @@ function speakWithIndianMaleSynthesis(text, onEnd) {
     // CRITICAL: Bind to window so Chromium / WebKit garbage collection doesn't kill speech mid-sentence
     window.__hiresense_utterance = utterance;
 
-    utterance.rate = 0.96;
+    utterance.rate = 0.95;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
 
@@ -470,7 +490,7 @@ function speakWithIndianMaleSynthesis(text, onEnd) {
     };
 
     utterance.onerror = (err) => {
-      console.warn("SpeechSynthesis utterance error:", err);
+      console.warn("SpeechSynthesis utterance notice:", err);
       cleanup();
       if (onEnd) onEnd();
     };
@@ -483,19 +503,16 @@ function speakWithIndianMaleSynthesis(text, onEnd) {
       if (window.speechSynthesis && window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
-    }, 3000);
+    }, 2500);
 
-    // 50ms delay after cancel() ensures Chrome state machine is ready to accept new utterance
-    setTimeout(() => {
-      try {
-        window.speechSynthesis.resume();
-        window.speechSynthesis.speak(utterance);
-      } catch (err) {
-        console.warn("SpeechSynthesis speak call error:", err);
-        cleanup();
-        if (onEnd) onEnd();
-      }
-    }, 60);
+    // Speak synchronously right now so mobile user gesture context is preserved!
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn("SpeechSynthesis speak call error:", err);
+      cleanup();
+      if (onEnd) onEnd();
+    }
   } catch (err) {
     console.warn("Speech synthesis invocation failed:", err);
     if (onEnd) onEnd();
@@ -503,7 +520,7 @@ function speakWithIndianMaleSynthesis(text, onEnd) {
 }
 
 /**
- * Audio stream fallback via backend TTS proxy
+ * Audio stream playback via backend TTS proxy
  */
 function speakWithAudioStream(phrases, onEnd, onFallback) {
   let phraseIndex = 0;
@@ -518,21 +535,28 @@ function speakWithAudioStream(phrases, onEnd, onFallback) {
     }
 
     const currentPhrase = phrases[phraseIndex++];
-    const rawApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "/api";
-    const base = rawApiUrl.endsWith("/api") ? rawApiUrl : `${rawApiUrl.replace(/\/+$/, "")}/api`;
+    const envBase =
+      (typeof import.meta !== "undefined" && import.meta.env && (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL)) || "";
+    let base = "/api";
+    if (envBase) {
+      base = envBase.endsWith("/api") ? envBase : `${envBase.replace(/\/+$/, "")}/api`;
+    } else if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+      base = "http://localhost:8080/api";
+    }
+
     const audioUrl = `${base}/tts?lang=en-IN&text=${encodeURIComponent(currentPhrase)}`;
     const audio = new Audio(audioUrl);
     currentHumanAudio = audio;
 
     let timeoutId = setTimeout(() => {
-      // If audio fails to load within 2.5s, fall back to speech synthesis immediately
+      // If audio fails to load within 3s, fall back to speech synthesis immediately
       if (!audio.duration || audio.paused) {
         console.warn("Audio stream timed out, falling back to synthesis");
         hasFailed = true;
         currentHumanAudio = null;
         if (onFallback) onFallback();
       }
-    }, 2500);
+    }, 3000);
 
     audio.onplaying = () => {
       clearTimeout(timeoutId);

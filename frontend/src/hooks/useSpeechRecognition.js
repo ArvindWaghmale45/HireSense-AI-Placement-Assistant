@@ -89,19 +89,15 @@ export function useSpeechRecognition({ onResult, lang = "en-IN" } = {}) {
       }
 
       if (isListeningRef.current) {
-        try {
-          recognition.start();
-        } catch {
-          setTimeout(() => {
-            if (isListeningRef.current) {
-              try {
-                recognition.start();
-              } catch {
-                // ignore
-              }
+        setTimeout(() => {
+          if (isListeningRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch {
+              // Ignore if already transitioning
             }
-          }, 200);
-        }
+          }
+        }, 120);
       } else {
         setIsListening(false);
       }
