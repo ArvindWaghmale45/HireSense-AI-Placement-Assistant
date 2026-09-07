@@ -56,6 +56,63 @@ export function stopSpeaking() {
 }
 
 /**
+ * Transcribes recorded candidate audio using Gemini Multimodal audio model
+ */
+export async function transcribeSpokenAudio(audioBlob, questionText = "") {
+  const apiKey = getApiKey();
+  if (!apiKey || !audioBlob || audioBlob.size < 1000) {
+    return null;
+  }
+  try {
+    const base64Audio = await blobToBase64(audioBlob);
+    const mimeType = audioBlob.type.split(";")[0] || "audio/webm";
+
+    const prompt = `You are an expert transcriber for technical campus placement interviews.
+Listen carefully to the candidate's audio. Transcribe their spoken response word-for-word into English, capturing technical terms accurately (like Java, Spring Boot, OOP, JVM, Hibernate, REST API, SQL, multithreading, polymorphism, etc.).
+Question they answered: "${questionText}"
+
+Return ONLY a JSON object:
+{
+  "transcript": "<exact transcribed English response text>"
+}`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType, data: base64Audio } },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            responseMimeType: "application/json",
+          },
+        }),
+      },
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (raw) {
+        const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+        return parsed.transcript || null;
+      }
+    }
+  } catch (err) {
+    console.warn("Direct audio transcription error:", err);
+  }
+  return null;
+}
+
+/**
  * Converts a Blob to a Base64 string
  */
 async function blobToBase64(blob) {

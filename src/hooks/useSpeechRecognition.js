@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-export function useSpeechRecognition({ onResult } = {}) {
+export function useSpeechRecognition({ onResult, lang = "en-IN" } = {}) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(false);
+  const [selectedLang, setSelectedLang] = useState(lang);
 
   const recognitionRef = useRef(null);
   const isListeningRef = useRef(false);
-  const finalTranscriptRef = useRef("");
+  const previousSessionsTextRef = useRef("");
+  const currentSessionFinalRef = useRef("");
   const onResultRef = useRef(onResult);
 
   useEffect(() => {
@@ -18,77 +20,94 @@ export function useSpeechRecognition({ onResult } = {}) {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (SpeechRecognition) {
-      setIsSupported(true);
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-      recognition.lang = "en-US";
-
-      recognition.onresult = (event) => {
-        let interim = "";
-        let final = finalTranscriptRef.current;
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const item = event.results[i];
-          if (item.isFinal) {
-            final += " " + item[0].transcript.trim();
-          } else {
-            interim += " " + item[0].transcript.trim();
-          }
-        }
-
-        finalTranscriptRef.current = final.trim();
-        const full = (final + " " + interim).trim();
-
-        // Capitalize first letter of output
-        const formatted = full.length > 0 ? full.charAt(0).toUpperCase() + full.slice(1) : full;
-        setTranscript(formatted);
-
-        if (onResultRef.current) {
-          onResultRef.current(formatted);
-        }
-      };
-
-      recognition.onerror = (event) => {
-        // "no-speech" happens during pauses; we want to continue listening!
-        if (event.error === "no-speech") {
-          return;
-        }
-        console.warn("Speech recognition notice:", event.error);
-        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          isListeningRef.current = false;
-          setIsListening(false);
-        }
-      };
-
-      // Resilient auto-restart on pause
-      recognition.onend = () => {
-        if (isListeningRef.current) {
-          try {
-            recognition.start();
-          } catch {
-            // If restart fails temporarily, try again after short delay
-            setTimeout(() => {
-              if (isListeningRef.current) {
-                try {
-                  recognition.start();
-                } catch {
-                  // ignore
-                }
-              }
-            }, 300);
-          }
-        } else {
-          setIsListening(false);
-        }
-      };
-
-      recognitionRef.current = recognition;
-    } else {
+    if (!SpeechRecognition) {
       setIsSupported(false);
+      return;
     }
+
+    setIsSupported(true);
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    // Default to en-IN (English - India) for Indian placement interviews, or user-selected lang
+    recognition.lang = selectedLang;
+
+    recognition.onresult = (event) => {
+      let currentSessionFinal = "";
+      let currentSessionInterim = "";
+
+      // Single-pass parse of current session results without duplication
+      for (let i = 0; i < event.results.length; i++) {
+        const item = event.results[i];
+        if (item.isFinal) {
+          currentSessionFinal += item[0].transcript + " ";
+        } else {
+          currentSessionInterim += item[0].transcript;
+        }
+      }
+
+      currentSessionFinalRef.current = currentSessionFinal;
+
+      // Combine previous sessions with current final & interim
+      const combinedFinal = (previousSessionsTextRef.current + " " + currentSessionFinal)
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const full = (combinedFinal + " " + currentSessionInterim).replace(/\s+/g, " ").trim();
+
+      // Format capital first letter
+      const formatted = full.length > 0 ? full.charAt(0).toUpperCase() + full.slice(1) : full;
+      setTranscript(formatted);
+
+      if (onResultRef.current) {
+        onResultRef.current(formatted);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      // "no-speech" is normal when candidate is thinking
+      if (event.error === "no-speech") {
+        return;
+      }
+      console.warn("Speech recognition notice:", event.error);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        isListeningRef.current = false;
+        setIsListening(false);
+      }
+    };
+
+    recognition.onend = () => {
+      // Save finalized text from this session before restarting
+      if (currentSessionFinalRef.current) {
+        previousSessionsTextRef.current = (
+          previousSessionsTextRef.current + " " + currentSessionFinalRef.current
+        )
+          .replace(/\s+/g, " ")
+          .trim();
+        currentSessionFinalRef.current = "";
+      }
+
+      if (isListeningRef.current) {
+        try {
+          recognition.start();
+        } catch {
+          setTimeout(() => {
+            if (isListeningRef.current) {
+              try {
+                recognition.start();
+              } catch {
+                // ignore
+              }
+            }
+          }, 200);
+        }
+      } else {
+        setIsListening(false);
+      }
+    };
+
+    recognitionRef.current = recognition;
 
     return () => {
       isListeningRef.current = false;
@@ -100,7 +119,7 @@ export function useSpeechRecognition({ onResult } = {}) {
         }
       }
     };
-  }, []);
+  }, [selectedLang]);
 
   const startListening = useCallback(() => {
     if (recognitionRef.current) {
@@ -109,7 +128,6 @@ export function useSpeechRecognition({ onResult } = {}) {
         recognitionRef.current.start();
         setIsListening(true);
       } catch {
-        // May already be started
         setIsListening(true);
       }
     }
@@ -128,8 +146,13 @@ export function useSpeechRecognition({ onResult } = {}) {
   }, []);
 
   const resetTranscript = useCallback(() => {
-    finalTranscriptRef.current = "";
+    previousSessionsTextRef.current = "";
+    currentSessionFinalRef.current = "";
     setTranscript("");
+  }, []);
+
+  const setLanguage = useCallback((newLang) => {
+    setSelectedLang(newLang);
   }, []);
 
   return {
@@ -139,5 +162,7 @@ export function useSpeechRecognition({ onResult } = {}) {
     startListening,
     stopListening,
     resetTranscript,
+    selectedLang,
+    setLanguage,
   };
 }

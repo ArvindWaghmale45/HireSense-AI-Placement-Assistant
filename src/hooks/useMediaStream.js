@@ -15,10 +15,19 @@ export function useMediaStream() {
         throw new Error("Camera and microphone are not supported in this browser.");
       }
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
-        audio: true,
-      });
+      let mediaStream;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+          audio: true,
+        });
+      } catch (firstErr) {
+        console.warn("Primary camera constraint failed, falling back to standard video:", firstErr);
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+      }
 
       setStream(mediaStream);
       setHasPermission(true);
@@ -27,6 +36,7 @@ export function useMediaStream() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        videoRef.current.play?.().catch(() => {});
       }
       return mediaStream;
     } catch (err) {
@@ -74,12 +84,33 @@ export function useMediaStream() {
     }
   }, [stream]);
 
-  // Connect video element when ref updates or stream changes
+  // Connect video element whenever stream changes or video element mounts
+  const attachVideo = useCallback(
+    (node) => {
+      videoRef.current = node;
+      if (node && stream) {
+        if (node.srcObject !== stream) {
+          node.srcObject = stream;
+        }
+        node
+          .play()
+          .catch((err) => console.warn("Video auto-play prevented or awaiting interaction:", err));
+      }
+    },
+    [stream]
+  );
+
+  // Sync video ref when stream changes
   useEffect(() => {
     if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+      if (videoRef.current.srcObject !== stream) {
+        videoRef.current.srcObject = stream;
+      }
+      videoRef.current
+        .play()
+        .catch((err) => console.warn("Video auto-play prevented:", err));
     }
-  }, [stream]);
+  }, [stream, isCameraOn]);
 
   // Cleanup tracks when hook unmounts
   useEffect(() => {
@@ -92,6 +123,7 @@ export function useMediaStream() {
 
   return {
     videoRef,
+    attachVideo,
     stream,
     isCameraOn,
     isMicOn,

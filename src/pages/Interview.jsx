@@ -34,6 +34,7 @@ import {
   setApiKey,
   generateAiQuestions,
   evaluateAiAnswer,
+  transcribeSpokenAudio,
   speakQuestion,
   stopSpeaking,
 } from "@/lib/api/ai";
@@ -89,6 +90,7 @@ function InterviewBody() {
   // Candidate camera hook
   const {
     videoRef,
+    attachVideo,
     isCameraOn,
     isMicOn,
     startStream,
@@ -108,22 +110,44 @@ function InterviewBody() {
     resetRecording,
   } = useAudioRecorder();
 
-  // Voice speech-to-text hook
+  const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
+
+  // Voice speech-to-text hook with accent selection and no duplication
   const {
     isListening,
     isSupported: isSpeechSupported,
     startListening,
     stopListening,
     resetTranscript,
+    selectedLang,
+    setLanguage,
   } = useSpeechRecognition({
+    lang: "en-IN",
     onResult: (spokenText) => {
-      setAnswer((prev) => {
-        // Append or replace spoken text smoothly
-        if (!prev) return spokenText;
-        return spokenText;
-      });
+      setAnswer(spokenText);
     },
   });
+
+  const handleAiTranscribe = async () => {
+    if (!audioBlob) {
+      toast.info("Record audio first using the microphone button.");
+      return;
+    }
+    setIsTranscribingAudio(true);
+    try {
+      const refinedText = await transcribeSpokenAudio(audioBlob, current?.text || "");
+      if (refinedText) {
+        setAnswer(refinedText);
+        toast.success("AI Transcribed audio with technical accuracy!");
+      } else {
+        toast.info("Add a free Gemini key in Setup to enable multimodal AI transcription.");
+      }
+    } catch (err) {
+      toast.error("AI Transcription notice: " + err.message);
+    } finally {
+      setIsTranscribingAudio(false);
+    }
+  };
 
   useEffect(() => {
     if (user) setHistory(listInterviews(user.id));
@@ -308,7 +332,7 @@ function InterviewBody() {
               <div className="relative aspect-video w-full flex items-center justify-center bg-slate-950">
                 {enableCamera && isCameraOn ? (
                   <video
-                    ref={videoRef}
+                    ref={attachVideo}
                     autoPlay
                     playsInline
                     muted
@@ -415,7 +439,7 @@ function InterviewBody() {
               <CardContent className="space-y-4">
                 {/* Voice recording button & Live status */}
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-border bg-secondary/30">
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       type="button"
                       onClick={handleToggleVoice}
@@ -435,6 +459,41 @@ function InterviewBody() {
                         </>
                       )}
                     </Button>
+
+                    {/* Accent / Language toggle */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLanguage(selectedLang === "en-IN" ? "en-US" : "en-IN")}
+                      className="text-xs h-8 px-2 text-muted-foreground hover:text-foreground"
+                      title="Click to switch speech accent between Indian English and US English"
+                    >
+                      {selectedLang === "en-IN" ? "🇮🇳 English (IN)" : "🇺🇸 English (US)"}
+                    </Button>
+
+                    {/* AI Transcribe Button (when audio was recorded) */}
+                    {audioBlob && !isListening && !isRecording && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleAiTranscribe}
+                        disabled={isTranscribingAudio}
+                        className="text-xs h-8 gap-1.5 font-medium border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
+                        title="Transcribe recorded audio directly with Google Gemini AI for technical terminology"
+                      >
+                        {isTranscribingAudio ? (
+                          <>
+                            <Loader2 className="size-3 animate-spin" /> Transcribing…
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="size-3 text-primary" /> AI Refine Text
+                          </>
+                        )}
+                      </Button>
+                    )}
 
                     {(isListening || isRecording) && (
                       <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-destructive/10 border border-destructive/20">
