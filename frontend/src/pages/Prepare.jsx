@@ -92,6 +92,7 @@ function PrepareBody() {
     setAttempts(listAttempts(user.id));
     setSavedTests(listSavedTests(user.id));
   };
+  const refreshAttempts = refreshData;
 
   // Merged list of user saved AI tests + pre-configured curated tests
   const allTests = useMemo(() => {
@@ -457,7 +458,7 @@ function PrepareBody() {
 
           {/* Flashcard Practice Tab */}
           <TabsContent value="flashcards" className="space-y-4">
-            <FlashcardPractice userId={user.id} onSaved={refreshAttempts} />
+            <FlashcardPractice userId={user.id} onSaved={refreshData} />
           </TabsContent>
 
           {/* HR Guide Tab */}
