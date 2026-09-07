@@ -13,6 +13,7 @@ import Assistant from "./pages/Assistant";
 import ResumeAnalyzer from "./pages/ResumeAnalyzer";
 import SkillAnalysis from "./pages/SkillAnalysis";
 import NotFound from "./pages/NotFound";
+import { FloatingChatbot } from "./components/FloatingChatbot";
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/skills" element={<SkillAnalysis />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <FloatingChatbot />
       </BrowserRouter>
       <Toaster />
     </AuthProvider>
