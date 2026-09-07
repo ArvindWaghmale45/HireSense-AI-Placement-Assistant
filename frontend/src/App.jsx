@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
+import { ThemeProvider } from "./hooks/useTheme";
 import { Toaster } from "./components/ui/sonner";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -15,8 +16,9 @@ import NotFound from "./pages/NotFound";
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
@@ -33,5 +35,6 @@ export default function App() {
       </BrowserRouter>
       <Toaster />
     </AuthProvider>
+    </ThemeProvider>
   );
 }

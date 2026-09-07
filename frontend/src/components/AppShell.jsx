@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { HireSenseLogo } from "@/components/HireSenseLogo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   BrainCircuit,
   FileText,
@@ -72,7 +73,8 @@ export function AppShell({ children }) {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <ThemeToggle size="sm" />
             <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-border/80 bg-secondary/50 text-xs">
               <span className="size-2 rounded-full bg-emerald-500" />
               <span className="font-medium text-foreground max-w-[120px] sm:max-w-none truncate">

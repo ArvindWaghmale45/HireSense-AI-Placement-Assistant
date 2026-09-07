@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { HireSenseLogo } from "@/components/HireSenseLogo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   BrainCircuit,
   FileText,
@@ -53,7 +54,8 @@ export default function Landing() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <HireSenseLogo size="md" showBadge={true} href="/" />
 
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-2.5">
+            <ThemeToggle size="sm" />
             {user ? (
               <>
                 <span className="hidden text-sm text-muted-foreground sm:inline font-medium">
