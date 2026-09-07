@@ -459,29 +459,17 @@ function InterviewBody() {
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
           {/* LEFT: LIVE WEBCAM & AI INTERVIEWER */}
           <div className="space-y-4">
-            {/* Realistic HUD Webcam Feed Arena */}
-            <Card className="overflow-hidden bg-black/95 border-2 border-primary/30 shadow-xl relative group">
-              <div className="relative aspect-video w-full flex items-center justify-center bg-slate-950 overflow-hidden">
-                {/* 4 Corner Targeting Reticles */}
-                <div className="absolute top-2 left-2 size-3.5 border-t-2 border-l-2 border-cyan-400/80 z-20 pointer-events-none" />
-                <div className="absolute top-2 right-2 size-3.5 border-t-2 border-r-2 border-cyan-400/80 z-20 pointer-events-none" />
-                <div className="absolute bottom-2 left-2 size-3.5 border-b-2 border-l-2 border-cyan-400/80 z-20 pointer-events-none" />
-                <div className="absolute bottom-2 right-2 size-3.5 border-b-2 border-r-2 border-cyan-400/80 z-20 pointer-events-none" />
-
+            {/* Clean Professional Webcam Video Feed */}
+            <Card className="overflow-hidden bg-slate-950 border border-border/80 shadow-md relative group rounded-xl">
+              <div className="relative aspect-video w-full flex items-center justify-center bg-slate-950">
                 {enableCamera && isCameraOn && !mediaError ? (
-                  <>
-                    <video
-                      ref={attachVideo}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full h-full object-cover scale-x-[-1]"
-                    />
-                    {/* Subtle Face Alignment Guide */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-25">
-                      <div className="w-36 h-48 rounded-[50%] border border-dashed border-cyan-400" />
-                    </div>
-                  </>
+                  <video
+                    ref={attachVideo}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover scale-x-[-1]"
+                  />
                 ) : mediaError ? (
                   <div className="flex flex-col items-center justify-center text-center p-6 bg-red-950/60 border border-red-500/40 rounded-lg text-white max-w-sm m-auto z-10">
                     <CircleAlert className="size-10 text-red-400 mb-2" />
@@ -505,21 +493,15 @@ function InterviewBody() {
                   </div>
                 )}
 
-                {/* HUD Telemetry: Top Left REC Status */}
+                {/* Status: Top Left Live Indicator */}
                 <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-xs text-white z-20 border border-white/10">
                   <span className="size-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="font-mono text-[11px] font-semibold tracking-wide">REC • 1080p</span>
-                </div>
-
-                {/* HUD Telemetry: Top Right Diagnostics */}
-                <div className="absolute top-3 right-3 hidden sm:flex items-center gap-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-mono text-cyan-300 z-20 border border-white/10">
-                  <span className="size-1.5 rounded-full bg-emerald-400" />
-                  <span>AI Latency: 14ms</span>
+                  <span className="text-[11px] font-medium tracking-wide">LIVE</span>
                 </div>
 
                 {/* Candidate Tag: Bottom Left */}
                 <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full text-xs text-white z-20 border border-white/10">
-                  <UserIcon className="size-3.5 text-cyan-400" />
+                  <UserIcon className="size-3.5 text-primary" />
                   <span className="font-medium text-[11px]">{user?.name || "Candidate"}</span>
                 </div>
 

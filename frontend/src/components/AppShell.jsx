@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,17 +15,16 @@ import {
   Target,
   User as UserIcon,
   Sparkles,
-  Zap,
 } from "lucide-react";
 
 const NAV = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/interview", label: "Mock Interview", icon: Mic },
-  { to: "/prepare", label: "Placement Prep", icon: Target },
-  { to: "/assistant", label: "AI Assistant", icon: MessageSquare },
-  { to: "/resume", label: "Resume Analyzer", icon: FileText },
-  { to: "/skills", label: "Skill Analysis", icon: BrainCircuit },
-  { to: "/profile", label: "Profile", icon: UserIcon },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-blue-500" },
+  { to: "/interview", label: "Mock Interview", icon: Mic, color: "text-indigo-500" },
+  { to: "/prepare", label: "Placement Prep", icon: Target, color: "text-amber-500" },
+  { to: "/assistant", label: "AI Assistant", icon: MessageSquare, color: "text-sky-500" },
+  { to: "/resume", label: "Resume Analyzer", icon: FileText, color: "text-emerald-500" },
+  { to: "/skills", label: "Skill Analysis", icon: BrainCircuit, color: "text-rose-500" },
+  { to: "/profile", label: "Profile", icon: UserIcon, color: "text-violet-500" },
 ];
 
 export function AppShell({ children }) {
@@ -46,7 +45,7 @@ export function AppShell({ children }) {
       <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
         <div className="flex flex-col items-center gap-3">
           <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <p className="text-xs font-mono uppercase tracking-widest text-primary">Initializing Neural Studio…</p>
+          <p className="text-xs font-medium text-muted-foreground">Loading workspace…</p>
         </div>
       </div>
     );
@@ -54,37 +53,35 @@ export function AppShell({ children }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-x-hidden selection:bg-primary/20">
-      {/* Futuristic Ambient Volumetric Glow Mesh (Background) */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute -top-40 left-1/4 w-[500px] h-[450px] bg-primary/10 blur-[130px] rounded-full" />
-        <div className="absolute top-1/3 -right-20 w-[450px] h-[400px] bg-cyan-500/10 blur-[120px] rounded-full" />
-        <div className="absolute -bottom-20 left-1/3 w-[550px] h-[350px] bg-purple-500/10 blur-[140px] rounded-full" />
+      {/* Subtle ambient gradient mesh for depth */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden opacity-40 dark:opacity-25">
+        <div className="absolute -top-40 left-1/4 w-[500px] h-[450px] bg-blue-500/10 blur-[130px] rounded-full" />
+        <div className="absolute top-1/3 -right-20 w-[450px] h-[400px] bg-violet-500/10 blur-[120px] rounded-full" />
+        <div className="absolute -bottom-20 left-1/3 w-[550px] h-[350px] bg-emerald-500/10 blur-[140px] rounded-full" />
       </div>
 
-      {/* Frosted Glass HUD Header */}
-      <header className="sticky top-0 z-40 border-b border-primary/20 bg-card/75 backdrop-blur-xl shadow-xs">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
-          <Link to="/dashboard" className="flex items-center gap-2.5 font-display text-xl font-bold tracking-tight">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-tr from-primary via-blue-600 to-cyan-400 text-primary-foreground shadow-sm shadow-primary/25">
-              <Mic className="size-4" />
-            </span>
-            <span>
-              Hire<span className="text-primary bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent">Sense</span>
-            </span>
-          </Link>
+      {/* Main Navigation Header */}
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/85 backdrop-blur-md shadow-xs">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <Link to="/dashboard" className="flex items-center gap-2.5 font-display text-xl font-bold tracking-tight">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/25">
+                <Mic className="size-4" />
+              </span>
+              <span>
+                Hire<span className="text-primary">Sense</span>
+              </span>
+            </Link>
 
-          {/* Telemetry Status Badge */}
-          <div className="hidden md:flex items-center gap-2 pl-3 border-l border-border/60">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[11px] font-mono text-muted-foreground">
-              Campus AI Lab <span className="text-emerald-500 font-semibold">• Online</span>
+            <span className="hidden sm:inline-flex text-[11px] font-medium text-muted-foreground border-l border-border/70 pl-3">
+              Placement Preparation
             </span>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full border border-border/80 bg-secondary/40 text-xs">
-              <UserIcon className="size-3.5 text-primary" />
-              <span className="font-medium text-foreground">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-border/80 bg-secondary/50 text-xs">
+              <span className="size-2 rounded-full bg-emerald-500" />
+              <span className="font-medium text-foreground max-w-[120px] sm:max-w-none truncate">
                 {user?.name || user?.email || "Candidate"}
               </span>
             </div>
@@ -104,8 +101,8 @@ export function AppShell({ children }) {
           </div>
         </div>
 
-        {/* HUD Pill Navigation with Dynamic Active Pill Indicator */}
-        <nav className="mx-auto flex max-w-7xl gap-1.5 overflow-x-auto px-4 sm:px-6 pb-2.5 scrollbar-none">
+        {/* Tab Navigation with Fluid Active Indicator */}
+        <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6 pb-2 scrollbar-none">
           {NAV.map((item) => {
             const active = pathname === item.to || pathname.startsWith(item.to + "/");
             return (
@@ -113,20 +110,20 @@ export function AppShell({ children }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "relative flex shrink-0 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all",
+                  "relative flex shrink-0 items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
                   active
                     ? "text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/40",
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/60",
                 )}
               >
                 {active && (
                   <motion.span
                     layoutId="active-nav-pill"
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-primary via-blue-600 to-cyan-500 shadow-md shadow-primary/25 -z-10"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    className="absolute inset-0 rounded-full bg-primary shadow-xs -z-10"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
-                <item.icon className="size-3.5" />
+                <item.icon className={cn("size-3.5", !active && item.color)} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -134,13 +131,13 @@ export function AppShell({ children }) {
         </nav>
       </header>
 
-      {/* Main Page Layout with Cinematic Smooth Transition */}
+      {/* Main Container with Smooth Motion */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
         <motion.div
           key={pathname}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
         >
           {children}
         </motion.div>
@@ -151,20 +148,22 @@ export function AppShell({ children }) {
 
 export function PageHeader({ title, subtitle, badge }) {
   return (
-    <div className="mb-8 relative">
-      <div className="flex flex-wrap items-center gap-2.5 mb-2">
-        {badge ? (
-          <Badge variant="outline" className="text-[10px] font-mono uppercase tracking-wider text-primary border-primary/30">
+    <div className="mb-8">
+      {badge && (
+        <div className="mb-2">
+          <Badge variant="outline" className="text-xs font-medium text-primary border-primary/30">
             {badge}
           </Badge>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-primary/30 bg-primary/10 text-[10px] font-mono uppercase tracking-wider text-primary">
-            <Sparkles className="size-2.5" /> Active Module
-          </span>
-        )}
-      </div>
-      <h1 className="font-display text-2xl sm:text-4xl font-extrabold tracking-tight">{title}</h1>
-      {subtitle ? <p className="mt-1.5 text-sm sm:text-base text-muted-foreground leading-relaxed max-w-3xl">{subtitle}</p> : null}
+        </div>
+      )}
+      <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+        {title}
+      </h1>
+      {subtitle ? (
+        <p className="mt-1.5 text-sm sm:text-base text-muted-foreground leading-relaxed max-w-3xl">
+          {subtitle}
+        </p>
+      ) : null}
     </div>
   );
 }

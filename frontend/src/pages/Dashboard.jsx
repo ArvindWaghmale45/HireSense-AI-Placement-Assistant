@@ -5,7 +5,6 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card3D } from "@/components/ui/Card3D";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchUserInterviews, listInterviews } from "@/lib/api/interviews";
 import { listAttempts } from "@/lib/api/prep";
@@ -22,42 +21,47 @@ import {
   Flame,
   CheckCircle2,
   Sparkles,
-  Layers,
-  ChevronRight,
+  BarChart3,
+  Calendar,
+  BookOpen,
 } from "lucide-react";
 
-const QUICK = [
+const QUICK_ACTIONS = [
   {
     to: "/interview",
-    label: "Start AI Mock Interview",
-    text: "Spoken technical & HR rounds matched to your resume stack.",
+    title: "Mock Interview",
+    desc: "AI technical & HR rounds tailored to your stack with real-time scoring.",
     icon: Mic,
-    color: "from-blue-500/20 to-cyan-500/20",
-    iconColor: "text-blue-500",
+    theme: "border-indigo-500/30 hover:border-indigo-500 bg-gradient-to-br from-indigo-500/10 via-card to-card",
+    iconBg: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400",
+    badge: "Voice Enabled",
   },
   {
     to: "/prepare",
-    label: "Placement Question Bank",
-    text: "Curated aptitude, core CS, and technical MCQs with instant explanations.",
+    title: "Question Bank",
+    desc: "Aptitude, quantitative, CS core, and technical practice with instant hints.",
     icon: Target,
-    color: "from-amber-500/20 to-orange-500/20",
-    iconColor: "text-amber-500",
+    theme: "border-amber-500/30 hover:border-amber-500 bg-gradient-to-br from-amber-500/10 via-card to-card",
+    iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    badge: "Practice MCQs",
   },
   {
     to: "/resume",
-    label: "Resume ATS Analyzer",
-    text: "Audit resume keywords, readiness score, and placement gap fixes.",
+    title: "Resume Analyzer",
+    desc: "Upload your resume for ATS match scoring, detected skills, and concrete fixes.",
     icon: FileText,
-    color: "from-emerald-500/20 to-teal-500/20",
-    iconColor: "text-emerald-500",
+    theme: "border-emerald-500/30 hover:border-emerald-500 bg-gradient-to-br from-emerald-500/10 via-card to-card",
+    iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    badge: "ATS Readiness",
   },
   {
     to: "/assistant",
-    label: "24/7 AI Career Mentor",
-    text: "DSA clarifications, study plans, and final-year project guidance.",
+    title: "Career Assistant",
+    desc: "Ask technical doubts, request 30-day prep roadmaps, or polish STAR stories.",
     icon: MessageSquare,
-    color: "from-purple-500/20 to-indigo-500/20",
-    iconColor: "text-purple-500",
+    theme: "border-sky-500/30 hover:border-sky-500 bg-gradient-to-br from-sky-500/10 via-card to-card",
+    iconBg: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+    badge: "24/7 Guidance",
   },
 ];
 
@@ -101,343 +105,362 @@ function DashboardBody() {
 
   const firstName = (user?.name || "Candidate").split(" ")[0];
 
-  // Circle meter parameters for 3D Holographic Dial
-  const radius = 68;
+  // Radial gauge measurements
+  const radius = 62;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (readiness / 100) * circumference;
 
   return (
     <div className="space-y-8">
       <PageHeader
-        badge="Candidate Cockpit"
         title={`Welcome back, ${firstName}`}
         subtitle={
           user?.targetRole
-            ? `Active Target: ${user.targetRole}. Your neural interview readiness score is recalibrated continuously.`
-            : "Track your placement interview streak, analyze rubrics, and launch practice rounds."
+            ? `Preparing for ${user.targetRole}. Track your interview readiness, practice sets, and recent scores.`
+            : "Track your placement readiness, practice questions, and monitor your score improvements."
         }
       />
 
-      {/* TOP ROW: 3D PERSPECTIVE TILT STAT CARDS */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card3D maxTilt={7}>
-          <div className="p-5 flex flex-col justify-between h-full bg-gradient-to-br from-card to-card/70 border border-border/80 rounded-xl relative">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Mock Rounds Done</span>
-              <div className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                <Mic className="size-4" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="font-display text-3xl font-extrabold">{interviews.length}</p>
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                <Sparkles className="size-3 text-primary" /> Recorded & AI Evaluated
-              </span>
+      {/* TOP ROW: COLORFUL STAT CARDS WITH NATURAL HOVER MOTIONS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Interviews */}
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="rounded-xl border border-indigo-500/20 bg-card p-5 relative overflow-hidden shadow-xs hover:border-indigo-500/40 hover:shadow-md transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Interviews Completed
+            </span>
+            <div className="size-9 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Mic className="size-4" />
             </div>
           </div>
-        </Card3D>
+          <div className="mt-4">
+            <span className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
+              {interviews.length}
+            </span>
+            <span className="text-xs text-muted-foreground block mt-1">
+              {interviews.length === 1 ? "1 session recorded" : `${interviews.length} total sessions`}
+            </span>
+          </div>
+        </motion.div>
 
-        <Card3D maxTilt={7}>
-          <div className="p-5 flex flex-col justify-between h-full bg-gradient-to-br from-card to-card/70 border border-border/80 rounded-xl relative">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Average Examiner Score</span>
-              <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <Award className="size-4" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="font-display text-3xl font-extrabold">
-                {interviews.length ? `${avg}` : "—"}
-                {interviews.length ? <span className="text-base font-normal text-muted-foreground">/10</span> : ""}
-              </p>
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                <TrendingUp className="size-3 text-emerald-500" /> Rubric Calibrated
-              </span>
+        {/* Card 2: Average Score */}
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="rounded-xl border border-emerald-500/20 bg-card p-5 relative overflow-hidden shadow-xs hover:border-emerald-500/40 hover:shadow-md transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Average Score
+            </span>
+            <div className="size-9 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Award className="size-4" />
             </div>
           </div>
-        </Card3D>
+          <div className="mt-4">
+            <div className="flex items-baseline gap-1">
+              <span className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
+                {interviews.length ? avg : "—"}
+              </span>
+              {interviews.length > 0 && (
+                <span className="text-sm font-semibold text-muted-foreground">/10</span>
+              )}
+            </div>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium block mt-1">
+              {interviews.length ? "Based on all rounds" : "Complete a round to see"}
+            </span>
+          </div>
+        </motion.div>
 
-        <Card3D maxTilt={7}>
-          <div className="p-5 flex flex-col justify-between h-full bg-gradient-to-br from-card to-card/70 border border-border/80 rounded-xl relative">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Personal Best</span>
-              <div className="size-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                <Flame className="size-4" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="font-display text-3xl font-extrabold text-primary">
-                {best ? `${best}` : "—"}
-                {best ? <span className="text-base font-normal text-muted-foreground">/10</span> : ""}
-              </p>
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                <CheckCircle2 className="size-3 text-primary" /> High-Water Mark
-              </span>
+        {/* Card 3: Personal Best */}
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="rounded-xl border border-amber-500/20 bg-card p-5 relative overflow-hidden shadow-xs hover:border-amber-500/40 hover:shadow-md transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Highest Score
+            </span>
+            <div className="size-9 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Flame className="size-4" />
             </div>
           </div>
-        </Card3D>
+          <div className="mt-4">
+            <div className="flex items-baseline gap-1">
+              <span className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
+                {best ? best : "—"}
+              </span>
+              {best > 0 && (
+                <span className="text-sm font-semibold text-muted-foreground">/10</span>
+              )}
+            </div>
+            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium block mt-1">
+              {best >= 7 ? "High score milestone" : best > 0 ? "Target: 8.0+" : "No rounds yet"}
+            </span>
+          </div>
+        </motion.div>
 
-        <Card3D maxTilt={7}>
-          <div className="p-5 flex flex-col justify-between h-full bg-gradient-to-br from-card to-card/70 border border-border/80 rounded-xl relative">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">MCQ Quiz Accuracy</span>
-              <div className="size-8 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                <Zap className="size-4" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="font-display text-3xl font-extrabold">
-                {mcqTotal ? `${accuracy}%` : "—"}
-              </p>
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
-                {mcqTotal ? `${mcqCorrect}/${mcqTotal} correct` : "Take first quiz"}
-              </span>
+        {/* Card 4: MCQ Accuracy */}
+        <motion.div
+          whileHover={{ y: -3 }}
+          transition={{ duration: 0.2 }}
+          className="rounded-xl border border-purple-500/20 bg-card p-5 relative overflow-hidden shadow-xs hover:border-purple-500/40 hover:shadow-md transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Question Accuracy
+            </span>
+            <div className="size-9 rounded-lg bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <Zap className="size-4" />
             </div>
           </div>
-        </Card3D>
+          <div className="mt-4">
+            <span className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
+              {mcqTotal ? `${accuracy}%` : "—"}
+            </span>
+            <span className="text-xs text-muted-foreground block mt-1">
+              {mcqTotal ? `${mcqCorrect} of ${mcqTotal} correct` : "No quizzes taken yet"}
+            </span>
+          </div>
+        </motion.div>
       </div>
 
-      {/* 3D HOLOGRAPHIC PLACEMENT READINESS DIAL & TARGET COMPANY RADAR */}
-      <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-        {/* Holographic Readiness Dial */}
-        <Card className="border-primary/20 bg-gradient-to-br from-card via-card/90 to-primary/5 relative overflow-hidden shadow-lg shadow-black/5 dark:shadow-primary/5">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl -z-10" />
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="size-5 text-primary" />
-                <CardTitle className="text-lg font-display">Placement Readiness Index</CardTitle>
-              </div>
-              <Badge variant="outline" className="text-[10px] font-mono border-primary/40 text-primary">
-                AI Composite Metric
-              </Badge>
+      {/* PLACEMENT READINESS SECTION (CLEAN, WITHOUT TARGET BENCHMARKS CARD) */}
+      <Card className="border-border/80 bg-card shadow-xs overflow-hidden">
+        <CardHeader className="border-b border-border/60 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg font-display flex items-center gap-2">
+                <TrendingUp className="size-5 text-primary" /> Placement Readiness Summary
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Composite evaluation combining your mock interview performance, aptitude practice, and profile skills.
+              </CardDescription>
             </div>
-            <CardDescription>
-              Dynamic calculation blending spoken mock interview feedback, aptitude accuracy, and resume ATS calibration.
-            </CardDescription>
-          </CardHeader>
+            <Badge
+              variant="secondary"
+              className={`text-xs px-3 py-1 font-semibold ${
+                readiness >= 75
+                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                  : readiness >= 50
+                  ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30"
+                  : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+              }`}
+            >
+              {readiness >= 75 ? "Placement Ready" : readiness >= 50 ? "Solid Progress" : "Building Baseline"}
+            </Badge>
+          </div>
+        </CardHeader>
 
-          <CardContent className="pt-4">
-            <div className="flex flex-col sm:flex-row items-center gap-6 justify-around">
-              {/* Animated 3D Radial Gauge SVG */}
-              <div className="relative size-44 flex items-center justify-center">
-                <svg className="size-full -rotate-90" viewBox="0 0 160 160">
-                  {/* Outer Track Ring */}
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            {/* Left: Clean Radial Progress Gauge */}
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="relative size-40 flex items-center justify-center">
+                <svg className="size-full -rotate-90" viewBox="0 0 144 144">
                   <circle
-                    cx="80"
-                    cy="80"
+                    cx="72"
+                    cy="72"
                     r={radius}
-                    className="stroke-muted/40"
+                    className="stroke-muted"
                     strokeWidth="10"
                     fill="transparent"
                   />
-                  {/* Glowing Meter Ring */}
                   <motion.circle
-                    cx="80"
-                    cy="80"
+                    cx="72"
+                    cy="72"
                     r={radius}
-                    className="stroke-primary"
+                    className={
+                      readiness >= 75
+                        ? "stroke-emerald-500"
+                        : readiness >= 50
+                        ? "stroke-primary"
+                        : "stroke-amber-500"
+                    }
                     strokeWidth="10"
                     strokeDasharray={circumference}
                     initial={{ strokeDashoffset: circumference }}
                     animate={{ strokeDashoffset }}
-                    transition={{ duration: 1.2, ease: "easeOut" }}
+                    transition={{ duration: 1, ease: "easeOut" }}
                     strokeLinecap="round"
                     fill="transparent"
-                    style={{
-                      filter: "drop-shadow(0 0 8px rgba(59, 130, 246, 0.4))",
-                    }}
                   />
                 </svg>
-
-                {/* Dial Center Values */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                  <span className="font-display text-4xl font-extrabold tracking-tight">
+                  <span className="font-display text-3xl sm:text-4xl font-extrabold text-foreground">
                     {readiness}%
                   </span>
-                  <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground mt-0.5">
+                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mt-0.5">
                     Readiness
                   </span>
                 </div>
               </div>
+            </div>
 
-              {/* Status & Qualitative Breakdown */}
-              <div className="space-y-3 max-w-xs text-center sm:text-left">
-                <div>
-                  <Badge
-                    variant="secondary"
-                    className={`text-xs px-3 py-1 font-semibold ${
-                      readiness >= 75
-                        ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/30"
-                        : readiness >= 50
-                        ? "bg-primary/15 text-primary border border-primary/30"
-                        : "bg-amber-500/15 text-amber-500 border border-amber-500/30"
-                    }`}
-                  >
-                    {readiness >= 75
-                      ? "🔥 Tier 1 Product Ready"
-                      : readiness >= 50
-                      ? "⚡ Placement Sprint Mode"
-                      : "🌱 Foundation Phase"}
-                  </Badge>
-                  <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-                    {readiness < 40
-                      ? "Complete 2-3 mock interview rounds to calibrate your technical speech profile."
-                      : readiness < 75
-                      ? "Solid trajectory. Target core CS algorithms and system design to unlock Tier 1."
-                      : "Outstanding readiness! Your communication and technical answers are in high offer territory."}
-                  </p>
+            {/* Middle: Clear Progress Feedback */}
+            <div className="space-y-3 md:col-span-2">
+              <div>
+                <h4 className="font-semibold text-base text-foreground">
+                  {readiness >= 75
+                    ? "Strong Candidate Readiness"
+                    : readiness >= 50
+                    ? "Consistent Preparation Track"
+                    : "Initial Placement Preparation Phase"}
+                </h4>
+                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                  {readiness < 40
+                    ? "Complete your first few mock interviews and aptitude practice sets to build your baseline placement score."
+                    : readiness < 75
+                    ? "Good momentum. Target your weaker technical topics and practice multi-round interviews to reach high offer probability."
+                    : "Outstanding consistency. Your interview scores and accuracy put you in a very competitive tier for campus drives."}
+                </p>
+              </div>
+
+              {/* Breakdown Metric Bars */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-border/60">
+                <div className="p-3 rounded-lg bg-secondary/30 border border-border/60">
+                  <span className="text-xs text-muted-foreground block">Interview Score</span>
+                  <span className="font-semibold text-sm text-foreground">
+                    {interviews.length ? `${avg} / 10` : "Not taken yet"}
+                  </span>
                 </div>
-
-                <div className="pt-2 border-t border-border/60 grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-muted-foreground block text-[10px]">Mock Interview:</span>
-                    <span className="font-semibold">{interviews.length ? `${avg}/10 avg` : "Not started"}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-[10px]">MCQ Accuracy:</span>
-                    <span className="font-semibold">{mcqTotal ? `${accuracy}%` : "Not started"}</span>
-                  </div>
+                <div className="p-3 rounded-lg bg-secondary/30 border border-border/60">
+                  <span className="text-xs text-muted-foreground block">Practice Accuracy</span>
+                  <span className="font-semibold text-sm text-foreground">
+                    {mcqTotal ? `${accuracy}% accuracy` : "No attempts yet"}
+                  </span>
+                </div>
+                <div className="p-3 rounded-lg bg-secondary/30 border border-border/60">
+                  <span className="text-xs text-muted-foreground block">Target Role</span>
+                  <span className="font-semibold text-sm text-foreground truncate block">
+                    {user.targetRole || "Software Engineer"}
+                  </span>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Target Company Tier Matrix */}
-        <Card className="border-border/80 bg-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-display flex items-center gap-2">
-              <Layers className="size-4 text-primary" /> Target Tier Benchmark
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Calibrated against hiring criteria from campus placement records.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {[
-              {
-                tier: "Product Giants (Tier 1)",
-                companies: "Google, Microsoft, Amazon",
-                targetScore: "8.5+ / 10",
-                ready: readiness >= 80,
-              },
-              {
-                tier: "FinTech & Growth Unicorns",
-                companies: "J.P. Morgan, Razorpay, PhonePe",
-                targetScore: "7.5+ / 10",
-                ready: readiness >= 65,
-              },
-              {
-                tier: "Global IT Leaders",
-                companies: "TCS Digital, Infosys, Cognizant",
-                targetScore: "6.0+ / 10",
-                ready: readiness >= 45,
-              },
-            ].map((item) => (
-              <div
-                key={item.tier}
-                className="p-3 rounded-lg border border-border/80 bg-secondary/30 flex items-center justify-between text-xs"
-              >
-                <div>
-                  <h5 className="font-semibold text-foreground">{item.tier}</h5>
-                  <p className="text-[11px] text-muted-foreground">{item.companies}</p>
-                </div>
-                <div className="text-right">
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] ${
-                      item.ready
-                        ? "border-emerald-500/40 text-emerald-500 bg-emerald-500/10 font-bold"
-                        : "border-border text-muted-foreground"
-                    }`}
-                  >
-                    {item.ready ? "✓ On Track" : item.targetScore}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* QUICK ACTIONS LAUNCHPAD (WRAPPED IN 3D TILT CARDS) */}
+      {/* QUICK ACTIONS WITH DISTINCT COLOR THEMES & MOTION */}
       <div>
-        <h3 className="font-display text-lg font-bold mb-4 flex items-center gap-2">
-          <Zap className="size-4 text-primary" /> High-Impact Practice Launchpad
-        </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {QUICK.map((item) => (
-            <Card3D key={item.to} maxTilt={6}>
-              <div className="p-5 flex flex-col justify-between h-full bg-card rounded-xl border border-border/80 hover:border-primary/40 transition-colors">
-                <div>
-                  <div className={`size-10 rounded-lg bg-gradient-to-br ${item.color} flex items-center justify-center mb-3`}>
-                    <item.icon className={`size-5 ${item.iconColor}`} />
-                  </div>
-                  <h4 className="font-display text-base font-bold">{item.label}</h4>
-                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{item.text}</p>
-                </div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-lg font-bold text-foreground">
+            Preparation Modules
+          </h3>
+          <span className="text-xs text-muted-foreground">Jump into your daily prep</span>
+        </div>
 
-                <div className="mt-5 pt-3 border-t border-border/50 flex items-center justify-between">
-                  <Button asChild size="sm" variant="ghost" className="p-0 text-xs font-semibold text-primary hover:text-primary gap-1">
-                    <Link to={item.to}>
-                      Launch Now <ArrowRight className="size-3" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </Card3D>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {QUICK_ACTIONS.map((action) => (
+            <motion.div
+              key={action.to}
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              <Link to={action.to} className="block h-full group">
+                <Card className={`h-full border transition-all duration-200 ${action.theme}`}>
+                  <CardContent className="p-5 flex flex-col justify-between h-full">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={`size-10 rounded-lg flex items-center justify-center ${action.iconBg}`}>
+                          <action.icon className="size-5" />
+                        </div>
+                        <Badge variant="outline" className="text-[10px] font-medium border-border/80">
+                          {action.badge}
+                        </Badge>
+                      </div>
+                      <h4 className="font-display text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                        {action.title}
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                        {action.desc}
+                      </p>
+                    </div>
+
+                    <div className="mt-5 pt-3 border-t border-border/60 flex items-center justify-between text-xs font-semibold text-primary">
+                      <span>Open module</span>
+                      <ArrowRight className="size-3.5 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
           ))}
         </div>
       </div>
 
-      {/* RECENT INTERVIEWS LOG */}
-      <Card className="border-border/80">
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <div>
-            <CardTitle className="text-lg font-display">Recent Mock Interview Sessions</CardTitle>
-            <CardDescription className="text-xs">Your last simulated rounds and examiner feedback scores.</CardDescription>
+      {/* RECENT INTERVIEW SESSIONS LIST */}
+      <Card className="border-border/80 shadow-xs">
+        <CardHeader className="border-b border-border/60 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-base font-display flex items-center gap-2">
+                <Calendar className="size-4 text-primary" /> Recent Mock Interview Sessions
+              </CardTitle>
+              <CardDescription className="text-xs">
+                History of your latest interview simulations and performance marks.
+              </CardDescription>
+            </div>
+            <Button asChild size="sm" variant="outline" className="text-xs h-8">
+              <Link to="/interview">Start New Session →</Link>
+            </Button>
           </div>
-          <Button asChild size="sm" variant="outline" className="text-xs h-8">
-            <Link to="/interview">Start New Round →</Link>
-          </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {interviews.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border/80 p-8 text-center bg-secondary/20">
-              <BrainCircuit className="mx-auto mb-3 size-8 text-primary/60" />
-              <p className="text-sm font-medium">No recorded mock interview sessions yet.</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                Launch a 5-question mock round with speech recognition to establish your baseline candidate score.
+            <div className="p-8 text-center">
+              <div className="size-12 rounded-full bg-secondary text-muted-foreground flex items-center justify-center mx-auto mb-3">
+                <Mic className="size-5" />
+              </div>
+              <h4 className="text-sm font-semibold text-foreground">No interview sessions recorded yet</h4>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                Take a quick 5-question mock round to get your technical answers scored with instant feedback.
               </p>
-              <Button asChild className="mt-4 shadow-sm shadow-primary/20" size="sm">
-                <Link to="/interview">Launch First Session</Link>
+              <Button asChild size="sm" className="mt-4">
+                <Link to="/interview">Start First Interview</Link>
               </Button>
             </div>
           ) : (
             <div className="divide-y divide-border/60">
               {interviews.slice(0, 5).map((item) => (
-                <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5">
+                <div
+                  key={item.id}
+                  className="p-4 flex flex-wrap items-center justify-between gap-3 hover:bg-secondary/30 transition-colors"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="size-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                      {item.type === "HR" ? "HR" : "TECH"}
-                    </div>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        item.type === "HR"
+                          ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                          : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                      }`}
+                    >
+                      {item.type}
+                    </span>
                     <div>
-                      <h5 className="font-semibold text-sm capitalize">
+                      <span className="font-semibold text-sm text-foreground capitalize">
                         {item.type.toLowerCase()} Round ({item.difficulty.toLowerCase()})
-                      </h5>
-                      <p className="text-xs text-muted-foreground">
-                        {item.attempted}/{item.totalQuestions} questions completed
-                      </p>
+                      </span>
+                      <span className="text-xs text-muted-foreground block">
+                        {item.attempted}/{item.totalQuestions} questions answered
+                      </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <span className="font-display text-lg font-bold text-primary">
-                        {item.score}/10
+                      <span className="font-display text-lg font-bold text-foreground">
+                        {item.score}
+                        <span className="text-xs font-normal text-muted-foreground">/10</span>
                       </span>
-                      <span className="text-[10px] block text-muted-foreground">Examiner Score</span>
+                      <span className="text-[10px] text-muted-foreground block">Score</span>
                     </div>
                     <Button asChild size="sm" variant="ghost" className="text-xs h-8">
                       <Link to="/interview">Review →</Link>

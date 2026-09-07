@@ -69,26 +69,25 @@ function ResumeBody() {
   return (
     <div className="space-y-6">
       <PageHeader
-        badge="Neural Document Scanner"
-        title="3D Resume ATS Analyzer"
-        subtitle="Upload your resume to trigger laser-assisted skill extraction, campus hiring ATS scoring, and actionable rubric feedback."
+        title="Resume & ATS Readiness Analyzer"
+        subtitle="Upload your resume to check your ATS match score, extract technical skills, and identify missing keywords for your target role."
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1.5fr]">
-        {/* LEFT COLUMN: 3D LASER SCAN DROPZONE & EXTRACTED PROFILE */}
+        {/* LEFT COLUMN: RESUME UPLOAD DROPZONE & CANDIDATE DETAILS */}
         <div className="space-y-6">
-          <Card className="border-border/80 bg-card overflow-hidden relative shadow-sm">
+          <Card className="border-border/80 bg-card overflow-hidden relative shadow-xs">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-display flex items-center gap-2">
-                  <ScanLine className="size-4 text-primary" /> Document Laser Dropzone
+                  <FileText className="size-4 text-primary" /> Upload Resume
                 </CardTitle>
-                <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+                <Badge variant="outline" className="text-[10px] font-mono border-border/80 text-muted-foreground">
                   PDF • DOCX • TXT
                 </Badge>
               </div>
               <CardDescription className="text-xs">
-                Drop your updated resume file for real-time semantic analysis.
+                Upload your updated CV for automated parsing and scoring.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -107,34 +106,26 @@ function ResumeBody() {
                   onChange={(e) => handleUpload(e.target.files?.[0])}
                 />
 
-                {/* 3D Vertical Laser Scanning Beam Animation */}
-                {parsing && (
-                  <div className="absolute inset-0 overflow-hidden pointer-events-none z-30">
-                    <div className="absolute inset-0 bg-primary/10 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px] opacity-40" />
-                    <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_15px_rgba(34,211,238,0.9)] animate-scan-laser" />
-                  </div>
-                )}
-
                 {parsing ? (
                   <div className="space-y-3 py-4">
-                    <div className="size-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto text-primary animate-pulse">
+                    <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary animate-pulse">
                       <Sparkles className="size-6 animate-spin" />
                     </div>
-                    <p className="text-sm font-semibold text-primary">Laser Scanner Active…</p>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      Extracting technical tokens, education & experience…
+                    <p className="text-sm font-semibold text-primary">Analyzing Resume…</p>
+                    <p className="text-xs text-muted-foreground">
+                      Extracting technical skills, projects, and keywords…
                     </p>
                   </div>
                 ) : analysis ? (
                   <div className="space-y-2.5 py-3">
-                    <div className="size-12 rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center mx-auto shadow-xs">
+                    <div className="size-12 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-xs">
                       <FileCheck2 className="size-6" />
                     </div>
                     <p className="text-sm font-bold text-foreground truncate max-w-xs mx-auto">
                       {analysis.fileName}
                     </p>
-                    <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                      ✓ Scanned Successfully
+                    <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      ✓ Analyzed Successfully
                     </Badge>
                     <p className="text-xs text-muted-foreground pt-1">
                       Click to upload another version

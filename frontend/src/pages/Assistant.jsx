@@ -112,24 +112,23 @@ function AssistantBody() {
   return (
     <div className="space-y-4">
       <PageHeader
-        badge="Neural Career Cockpit"
-        title="AI Career Assistant & Mentor"
-        subtitle="24/7 technical interviewer & code tutor for DSA, system architecture, behavioral STAR stories, and placement study plans."
+        title="AI Career Assistant"
+        subtitle="Clarify technical concepts, get customized study plans, or review behavioral answer strategies."
       />
 
-      {/* Terminal Cockpit Container */}
+      {/* Main Chat Container */}
       <div className="grid gap-4 lg:grid-cols-[280px_1fr] h-[calc(100vh-230px)] min-h-[520px]">
         {/* Left: Chat Session Threads Navigation */}
-        <Card className="flex flex-col h-full overflow-hidden border-border/80 bg-card/80 backdrop-blur-md">
-          <div className="p-3 border-b border-border/80 flex items-center justify-between">
-            <Button onClick={handleNewChat} className="w-full gap-2 text-xs font-semibold shadow-xs" size="sm">
-              <Plus className="size-3.5" /> New Session
+        <Card className="flex flex-col h-full overflow-hidden border-border/80 bg-card">
+          <div className="p-3 border-b border-border/80">
+            <Button onClick={handleNewChat} className="w-full gap-2 text-xs font-semibold" size="sm">
+              <Plus className="size-3.5" /> New Conversation
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-none">
             {threads.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground">
-                No active conversations yet. Click New Session above!
+                No conversations yet. Click New Conversation to start!
               </div>
             ) : (
               threads.map((thread) => (
@@ -157,22 +156,19 @@ function AssistantBody() {
           </div>
         </Card>
 
-        {/* Right: Cockpit Chat Display Area */}
-        <Card className="flex flex-col h-full overflow-hidden border-border/80 bg-card relative shadow-sm">
-          {/* Terminal Top Bar */}
-          <div className="h-10 px-4 border-b border-border/80 bg-secondary/30 flex items-center justify-between text-xs">
+        {/* Right: Chat Display Area */}
+        <Card className="flex flex-col h-full overflow-hidden border-border/80 bg-card shadow-xs">
+          {/* Chat Header */}
+          <div className="h-11 px-4 border-b border-border/80 bg-secondary/20 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
-              <span className="size-2.5 rounded-full bg-red-500/80" />
-              <span className="size-2.5 rounded-full bg-amber-500/80" />
-              <span className="size-2.5 rounded-full bg-emerald-500/80" />
-              <span className="font-mono text-[11px] text-muted-foreground ml-2">
-                hiresense-neural-shell: v2.4
+              <span className="size-2 rounded-full bg-emerald-500" />
+              <span className="font-semibold text-foreground truncate max-w-[200px] sm:max-w-md">
+                {activeThread?.title || "Career Preparation Assistant"}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-500">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>AI Engine Online</span>
-            </div>
+            <span className="text-[11px] text-muted-foreground hidden sm:inline">
+              Placement Guidance
+            </span>
           </div>
 
           {/* Messages Stream */}
