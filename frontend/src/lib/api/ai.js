@@ -1,5 +1,5 @@
 import { delay, uid } from "./store";
-import { TECHNICAL_QUESTIONS, HR_QUESTIONS } from "../data/questions";
+import { TECHNICAL_QUESTIONS, HR_QUESTIONS, MCQ_QUESTIONS } from "../data/questions";
 
 const API_KEY_STORAGE = "hiresense:ai_api_key";
 const AI_MODEL_STORAGE = "hiresense:ai_model";
@@ -1011,3 +1011,138 @@ Return ONLY a valid JSON object:
     modelAnswer,
   };
 }
+
+/**
+ * Generates an AI-driven Aptitude or Technical placement test using Gemini,
+ * with robust fallback to the local shuffled MCQ_QUESTIONS bank.
+ */
+export async function generateAiAptitudeTest({
+  category = "aptitude",
+  topic = "General Placement Aptitude",
+  difficulty = "MEDIUM",
+  count = 10,
+  companyTarget = "",
+}) {
+  const apiKey = getApiKey();
+  const validCount = Math.max(3, Math.min(25, Number(count) || 10));
+
+  if (apiKey) {
+    try {
+      const companyInstruction = companyTarget
+        ? `Target Company Pattern: Structure questions matching recent campus assessment patterns for ${companyTarget}.`
+        : "Standard Indian MNC campus placement patterns (TCS NQT, Infosys, Cognizant, Wipro, Capgemini, Accenture).";
+
+      const prompt = `You are a Senior Technical & Aptitude Placement Director at a premier engineering university.
+Generate a high-quality placement test with exactly ${validCount} multiple-choice questions.
+
+Test Configuration:
+- Domain / Category: ${category.toUpperCase()}
+- Focus Topic(s): ${topic}
+- Difficulty Level: ${difficulty} (EASY, MEDIUM, or HARD)
+- ${companyInstruction}
+
+STRICT QUALITY RULES:
+1. Every question must have exactly 4 plausible, unambiguous options.
+2. Provide 'correctIndex' (0, 1, 2, or 3) indicating the single correct option.
+3. For Quantitative/Math: ensure calculations are 100% mathematically correct and realistic for college placement tests.
+4. For Logical Reasoning: ensure clear premise and logically sound conclusions.
+5. For Technical: ensure verified syntax, standard libraries, and architectural principles.
+6. Provide an informative step-by-step 'explanation' so students learn the underlying formula or logic.
+
+Return ONLY a valid JSON array of objects conforming to this schema:
+[
+  {
+    "id": "ai_mcq_1",
+    "category": "${category}",
+    "topic": "${topic}",
+    "text": "Detailed question text...",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctIndex": 0,
+    "explanation": "Clear step-by-step explanation..."
+  }
+]
+Do NOT wrap with markdown syntax or extra text. Pure JSON array only.`;
+
+      const raw = await callGeminiApi({
+        prompt,
+        temperature: 0.35,
+        responseMimeType: "application/json",
+      });
+
+      if (raw) {
+        let parsed = null;
+        try {
+          const arrayMatch = raw.match(/\[[\s\S]*\]/);
+          if (arrayMatch) {
+            parsed = JSON.parse(arrayMatch[0]);
+          } else {
+            const clean = raw.replace(/```json|```/g, "").trim();
+            const obj = JSON.parse(clean);
+            parsed = Array.isArray(obj) ? obj : (obj.questions || obj.items || Object.values(obj)[0]);
+          }
+        } catch (e) {
+          console.warn("AI MCQ parsing failed, raw was:", raw?.slice(0, 150));
+        }
+
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const validated = parsed
+            .filter((q) => q && q.text && Array.isArray(q.options) && q.options.length >= 2)
+            .map((q, idx) => ({
+              id: q.id || uid(`ai_mcq_${idx}`),
+              category: (q.category || category).toLowerCase(),
+              topic: q.topic || topic,
+              text: q.text,
+              options: q.options.slice(0, 4),
+              correctIndex:
+                typeof q.correctIndex === "number" &&
+                q.correctIndex >= 0 &&
+                q.correctIndex < q.options.length
+                  ? q.correctIndex
+                  : 0,
+              explanation: q.explanation || "Detailed solution not provided.",
+            }));
+
+          if (validated.length >= 3) {
+            return validated;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Gemini AI aptitude generation failed, falling back to local bank:", err);
+    }
+  }
+
+  // Fallback to randomized local question bank
+  await delay(250);
+  let pool = MCQ_QUESTIONS;
+  if (category && category !== "all") {
+    const catFiltered = MCQ_QUESTIONS.filter(
+      (q) => q.category.toLowerCase() === category.toLowerCase(),
+    );
+    if (catFiltered.length > 0) {
+      pool = catFiltered;
+    }
+  }
+
+  // Filter by topic if possible
+  if (topic && topic !== "General Placement Aptitude") {
+    const topicFiltered = pool.filter(
+      (q) =>
+        q.topic.toLowerCase().includes(topic.toLowerCase()) ||
+        topic.toLowerCase().includes(q.topic.toLowerCase()),
+    );
+    if (topicFiltered.length >= 3) {
+      pool = topicFiltered;
+    }
+  }
+
+  // Thorough Fisher-Yates shuffle
+  const copy = [...pool];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+
+  return copy.slice(0, validCount);
+}
+
