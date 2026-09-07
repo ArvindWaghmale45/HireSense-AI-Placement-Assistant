@@ -10,6 +10,7 @@ import { register } from "@/lib/api/auth";
 import { analyzeResume } from "@/lib/api/resume";
 import { useAuth } from "@/hooks/useAuth";
 import { Upload, FileCheck2 } from "lucide-react";
+import { HireSenseLogo } from "@/components/HireSenseLogo";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -80,10 +81,10 @@ export default function Register() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-12">
-      <div className="w-full max-w-lg">
-        <Link to="/" className="mb-6 block text-center font-display text-2xl font-bold">
-          Hire<span className="text-primary">Sense</span>
-        </Link>
+      <div className="w-full max-w-lg space-y-6">
+        <div className="flex justify-center">
+          <HireSenseLogo size="lg" showBadge={true} href="/" />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Create your account</CardTitle>

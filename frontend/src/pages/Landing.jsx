@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { HireSenseLogo } from "@/components/HireSenseLogo";
 import {
   BrainCircuit,
   FileText,
@@ -23,10 +24,10 @@ import {
 } from "lucide-react";
 
 const COMPANIES = [
-  { name: "Google", tier: "Tier 1 Product", color: "from-blue-500 to-red-500" },
-  { name: "Microsoft", tier: "Cloud & AI", color: "from-blue-600 to-cyan-500" },
-  { name: "Amazon", tier: "High Scale Systems", color: "from-amber-500 to-orange-500" },
-  { name: "TCS", tier: "TCS Digital / Ninja", color: "from-purple-500 to-indigo-600" },
+  { name: "Google", tier: "Tier-1 Product", color: "from-blue-500 to-red-500" },
+  { name: "Microsoft", tier: "Tier-1 Product", color: "from-blue-600 to-cyan-500" },
+  { name: "Amazon", tier: "Tier-1 Product", color: "from-amber-500 to-orange-500" },
+  { name: "TCS Digital & Ninja", tier: "Prime / NQT", color: "from-blue-600 to-teal-500" },
   { name: "Infosys", tier: "Power Programmer", color: "from-blue-500 to-indigo-500" },
   { name: "Wipro", tier: "Turbo & Elite", color: "from-green-500 to-emerald-600" },
   { name: "Cognizant", tier: "GenC Next", color: "from-cyan-500 to-blue-600" },
@@ -50,17 +51,7 @@ export default function Landing() {
       {/* Top Navigation */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/60">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2.5 font-display text-xl font-bold tracking-tight">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-primary via-blue-600 to-cyan-400 text-primary-foreground shadow-md shadow-primary/25">
-              <Mic className="size-5" />
-            </span>
-            <span>
-              Hire<span className="text-primary bg-gradient-to-r from-primary to-cyan-500 bg-clip-text text-transparent">Sense</span>
-            </span>
-            <Badge variant="outline" className="hidden sm:inline-flex text-[10px] uppercase font-mono tracking-widest text-primary border-primary/30">
-              AI 2.0
-            </Badge>
-          </Link>
+          <HireSenseLogo size="md" showBadge={true} href="/" />
 
           <nav className="flex items-center gap-3">
             {user ? (

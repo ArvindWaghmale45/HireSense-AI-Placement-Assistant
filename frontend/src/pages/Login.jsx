@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "@/lib/api/auth";
 import { useAuth } from "@/hooks/useAuth";
+import { HireSenseLogo } from "@/components/HireSenseLogo";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -41,10 +42,10 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-secondary/40 px-4 py-12">
-      <div className="w-full max-w-md">
-        <Link to="/" className="mb-6 block text-center font-display text-2xl font-bold">
-          Hire<span className="text-primary">Sense</span>
-        </Link>
+      <div className="w-full max-w-md space-y-6">
+        <div className="flex justify-center">
+          <HireSenseLogo size="lg" showBadge={true} href="/" />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Welcome back</CardTitle>

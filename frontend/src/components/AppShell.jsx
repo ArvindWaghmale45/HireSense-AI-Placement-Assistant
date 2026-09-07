@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { HireSenseLogo } from "@/components/HireSenseLogo";
 import {
   BrainCircuit,
   FileText,
@@ -64,14 +65,7 @@ export function AppShell({ children }) {
       <header className="sticky top-0 z-40 border-b border-border/80 bg-background/85 backdrop-blur-md shadow-xs">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="flex items-center gap-2.5 font-display text-xl font-bold tracking-tight">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/25">
-                <Mic className="size-4" />
-              </span>
-              <span>
-                Hire<span className="text-primary">Sense</span>
-              </span>
-            </Link>
+            <HireSenseLogo size="sm" showBadge={true} href="/dashboard" />
 
             <span className="hidden sm:inline-flex text-[11px] font-medium text-muted-foreground border-l border-border/70 pl-3">
               Placement Preparation
