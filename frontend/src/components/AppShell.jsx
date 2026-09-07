@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,10 +29,13 @@ export function AppShell({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    if (ready && !user) navigate("/login");
-  }, [ready, user, navigate]);
+    if (ready && !user && !isLoggingOut) {
+      navigate("/login", { state: { from: pathname }, replace: true });
+    }
+  }, [ready, user, navigate, pathname, isLoggingOut]);
 
   if (!ready || !user) {
     return (
@@ -50,13 +53,16 @@ export function AppShell({ children }) {
             Hire<span className="text-primary">Sense</span>
           </Link>
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-sm text-muted-foreground sm:inline">{user.name}</span>
+            <span className="hidden text-sm text-muted-foreground sm:inline">
+              {user?.name || user?.email || "Candidate"}
+            </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
+                setIsLoggingOut(true);
                 signOut();
-                navigate("/login");
+                navigate("/", { replace: true });
               }}
             >
               <LogOut className="mr-1 size-4" /> Sign out

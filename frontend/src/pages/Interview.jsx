@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,7 @@ import {
   transcribeSpokenAudio,
   speakQuestion,
   stopSpeaking,
+  INTERVIEW_TOPICS,
 } from "@/lib/api/ai";
 import {
   Camera,
@@ -42,6 +44,8 @@ import {
   RotateCcw,
   BookOpen,
   Activity,
+  Play,
+  Headphones,
 } from "lucide-react";
 
 export default function Interview() {
@@ -59,6 +63,8 @@ function InterviewBody() {
   const [difficulty, setDifficulty] = useState("MEDIUM");
   const [count, setCount] = useState(5);
   const [enableCamera, setEnableCamera] = useState(true);
+  const [focusTopic, setFocusTopic] = useState("ALL");
+  const [customTopic, setCustomTopic] = useState("");
 
   // Interview state
   const [questions, setQuestions] = useState([]);
@@ -69,6 +75,8 @@ function InterviewBody() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [isSpeakingQuestion, setIsSpeakingQuestion] = useState(false);
+
+  const SESSION_STORAGE_KEY = "hiresense:active_interview_session";
 
   // Candidate camera hook
   const {
@@ -132,6 +140,63 @@ function InterviewBody() {
     }
   };
 
+  // Restore active interview session if candidate refreshes the page
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && saved.stage === "running" && Array.isArray(saved.questions) && saved.questions.length > 0) {
+          setQuestions(saved.questions);
+          setIndex(saved.index || 0);
+          setAnswers(saved.answers || []);
+          setType(saved.type || "TECHNICAL");
+          setDifficulty(saved.difficulty || "MEDIUM");
+          setCount(saved.count || saved.questions.length);
+          setFocusTopic(saved.focusTopic || "ALL");
+          setCustomTopic(saved.customTopic || "");
+          setEnableCamera(saved.enableCamera ?? true);
+          setStage("running");
+          if (saved.enableCamera) {
+            startStream().catch(() => { });
+          }
+          toast.info(`Resumed your active interview at question ${(saved.index || 0) + 1}`);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not restore session:", err);
+    }
+  }, []);
+
+  // Save active interview progress to sessionStorage
+  useEffect(() => {
+    if (stage === "running" && questions.length > 0) {
+      try {
+        sessionStorage.setItem(
+          SESSION_STORAGE_KEY,
+          JSON.stringify({
+            stage: "running",
+            questions,
+            index,
+            answers,
+            type,
+            difficulty,
+            count,
+            focusTopic,
+            customTopic,
+            enableCamera,
+          })
+        );
+      } catch (e) {
+        console.warn("Could not save interview session:", e);
+      }
+    } else if (stage === "result" || stage === "setup") {
+      try {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      } catch { }
+    }
+  }, [stage, questions, index, answers, type, difficulty, count, focusTopic, customTopic, enableCamera]);
+
   useEffect(() => {
     if (user) {
       setHistory(listInterviews(user.id));
@@ -153,6 +218,24 @@ function InterviewBody() {
     }
   }, [stage, stopStream, stopListening, stopRecording]);
 
+  const handleQuitInterview = () => {
+    if (window.confirm("Are you sure you want to end this interview? Progress for this session will be cleared.")) {
+      try {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      } catch { }
+      setStage("setup");
+      setQuestions([]);
+      setAnswers([]);
+      setIndex(0);
+      setAnswer("");
+      stopStream();
+      stopSpeaking();
+      stopListening();
+      stopRecording();
+      toast.info("Interview session ended.");
+    }
+  };
+
   const current = questions[index];
   const progress = questions.length ? Math.round((index / questions.length) * 100) : 0;
 
@@ -171,6 +254,8 @@ function InterviewBody() {
         skills: user.skills || [],
         targetRole: user.targetRole || "Software Engineer",
         resumeText: user.resumeText || "",
+        focusTopic,
+        customTopic,
       });
 
       if (!generated || generated.length === 0) {
@@ -186,7 +271,7 @@ function InterviewBody() {
       resetRecording();
       setStage("running");
 
-      // Speak the first question aloud
+      // Speak the first question aloud automatically
       setTimeout(() => {
         setIsSpeakingQuestion(true);
         speakQuestion(generated[0].text, () => setIsSpeakingQuestion(false));
@@ -283,6 +368,18 @@ function InterviewBody() {
   if (!user) return null;
 
   // ================= STAGE 2: LIVE RUNNING INTERVIEW =================
+  if (stage === "running" && !current) {
+    return (
+      <div className="text-center py-16 space-y-4">
+        <h3 className="text-lg font-semibold">Session Interrupted</h3>
+        <p className="text-sm text-muted-foreground">
+          The active question was not found. Click below to start fresh.
+        </p>
+        <Button onClick={handleQuitInterview}>Reset & Start Session</Button>
+      </div>
+    );
+  }
+
   if (stage === "running" && current) {
     return (
       <div className="space-y-6">
@@ -294,18 +391,33 @@ function InterviewBody() {
                 Live Mock Interview
               </Badge>
               <Badge variant="outline">{type} Round</Badge>
+              {type === "TECHNICAL" && focusTopic !== "ALL" && (
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                  {focusTopic === "CUSTOM" && customTopic ? customTopic : INTERVIEW_TOPICS[focusTopic]?.label || focusTopic}
+                </Badge>
+              )}
               <Badge variant="secondary">{difficulty.toLowerCase()}</Badge>
             </div>
             <h2 className="text-xl font-bold mt-1">
               Question {index + 1} of {questions.length}
             </h2>
           </div>
-          <div className="w-48">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span>Progress</span>
-              <span>{progress}%</span>
+          <div className="flex items-center gap-4">
+            <div className="w-44">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>Progress</span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
             </div>
-            <Progress value={progress} className="h-2" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleQuitInterview}
+              className="text-xs h-8 text-muted-foreground hover:text-destructive hover:border-destructive"
+            >
+              Quit Session
+            </Button>
           </div>
         </div>
 
@@ -354,7 +466,7 @@ function InterviewBody() {
 
                 <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs text-white">
                   <UserIcon className="size-3.5 text-primary" />
-                  <span>{user.name}</span>
+                  <span>{user?.name || "Candidate"}</span>
                 </div>
 
                 {/* Video controls */}
@@ -362,9 +474,8 @@ function InterviewBody() {
                   <button
                     type="button"
                     onClick={toggleCamera}
-                    className={`p-2 rounded-full backdrop-blur-md transition-colors ${
-                      isCameraOn ? "bg-black/60 text-white hover:bg-black/80" : "bg-red-600 text-white"
-                    }`}
+                    className={`p-2 rounded-full backdrop-blur-md transition-colors ${isCameraOn ? "bg-black/60 text-white hover:bg-black/80" : "bg-red-600 text-white"
+                      }`}
                     title={isCameraOn ? "Turn off camera" : "Turn on camera"}
                   >
                     {isCameraOn ? <Camera className="size-4" /> : <CameraOff className="size-4" />}
@@ -372,9 +483,8 @@ function InterviewBody() {
                   <button
                     type="button"
                     onClick={toggleMic}
-                    className={`p-2 rounded-full backdrop-blur-md transition-colors ${
-                      isMicOn ? "bg-black/60 text-white hover:bg-black/80" : "bg-red-600 text-white"
-                    }`}
+                    className={`p-2 rounded-full backdrop-blur-md transition-colors ${isMicOn ? "bg-black/60 text-white hover:bg-black/80" : "bg-red-600 text-white"
+                      }`}
                     title={isMicOn ? "Mute mic" : "Unmute mic"}
                   >
                     {isMicOn ? <Mic className="size-4" /> : <MicOff className="size-4" />}
@@ -415,6 +525,7 @@ function InterviewBody() {
                 </Button>
               </CardContent>
             </Card>
+
           </div>
 
           {/* RIGHT: QUESTION & VOICE-TO-TEXT ANSWER */}
@@ -445,9 +556,8 @@ function InterviewBody() {
                       onClick={handleToggleVoice}
                       variant={isListening || isRecording ? "destructive" : "default"}
                       size="sm"
-                      className={`gap-2 ${
-                        isListening || isRecording ? "animate-pulse shadow-md shadow-destructive/20" : ""
-                      }`}
+                      className={`gap-2 ${isListening || isRecording ? "animate-pulse shadow-md shadow-destructive/20" : ""
+                        }`}
                     >
                       {isListening || isRecording ? (
                         <>
@@ -741,6 +851,46 @@ function InterviewBody() {
               </div>
             </div>
 
+            {/* Technical Focus Topic / Track Selector */}
+            {type === "TECHNICAL" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Interview Focus Topic</Label>
+                  <span className="text-[11px] text-muted-foreground">Select a specific subject or drill</span>
+                </div>
+                <Select value={focusTopic} onValueChange={(val) => setFocusTopic(val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select topic" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">🌐 Full Technical (All Resume Skills & Projects)</SelectItem>
+                    <SelectItem value="JAVA">☕ Java & Spring Boot (OOP, JVM, Collections)</SelectItem>
+                    <SelectItem value="FRONTEND">🎨 Frontend (React, JS, HTML/CSS)</SelectItem>
+                    <SelectItem value="BACKEND">⚙️ Backend & REST APIs (Spring, Node, Microservices)</SelectItem>
+                    <SelectItem value="MYSQL">🗄️ MySQL & Databases (SQL Queries, ACID, Joins)</SelectItem>
+                    <SelectItem value="DSA">🧩 Data Structures & Algorithms</SelectItem>
+                    <SelectItem value="ENTC">⚡ ENTC / Embedded Systems & IoT (C, Protocols, Microcontrollers)</SelectItem>
+                    <SelectItem value="PYTHON">🐍 Python & AI / Machine Learning</SelectItem>
+                    <SelectItem value="CUSTOM">✏️ Custom Topic (Enter your own)</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {focusTopic === "CUSTOM" && (
+                  <div className="mt-2 space-y-1.5 animate-in fade-in-50">
+                    <Input
+                      placeholder="e.g. Microcontrollers & VLSI, Docker & Kubernetes, Spring Security"
+                      value={customTopic}
+                      onChange={(e) => setCustomTopic(e.target.value)}
+                      className="text-sm"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Gemini will craft deep technical questions specifically for this chosen technology.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Number of Questions</Label>
               <Select value={String(count)} onValueChange={(val) => setCount(Number(val))}>
@@ -751,6 +901,13 @@ function InterviewBody() {
                   <SelectItem value="3">3 questions (~8 mins)</SelectItem>
                   <SelectItem value="5">5 questions (~15 mins)</SelectItem>
                   <SelectItem value="8">8 questions (~25 mins)</SelectItem>
+                  <SelectItem value="10">10 questions (~30 mins)</SelectItem>
+                  <SelectItem value="15">15 questions (~45 mins)</SelectItem>
+                  <SelectItem value="20">20 questions (~60 mins)</SelectItem>
+                  <SelectItem value="25">25 questions (~75 mins)</SelectItem>
+                  <SelectItem value="30">30 questions (Comprehensive)</SelectItem>
+                  <SelectItem value="40">40 questions (Marathon)</SelectItem>
+                  <SelectItem value="50">50 questions (Full Assessment)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

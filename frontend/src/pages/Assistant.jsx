@@ -176,13 +176,17 @@ function AssistantBody() {
                     </div>
                   )}
                   <div
-                    className={`rounded-lg px-4 py-3 max-w-[80%] text-sm whitespace-pre-wrap ${
+                    className={`rounded-xl px-4 py-3 max-w-[85%] text-sm shadow-sm ${
                       msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground border border-border"
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : "bg-card text-foreground border border-border/80"
                     }`}
                   >
-                    {msg.content}
+                    {msg.role === "assistant" ? (
+                      <FormattedMessage content={msg.content} />
+                    ) : (
+                      <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    )}
                   </div>
                   {msg.role === "user" && (
                     <div className="size-8 shrink-0 rounded-full bg-secondary flex items-center justify-center text-foreground">
@@ -219,4 +223,129 @@ function AssistantBody() {
       </div>
     </>
   );
+}
+
+function FormattedMessage({ content }) {
+  if (!content) return null;
+
+  // Split content by code blocks
+  const segments = content.split(/(```[\s\S]*?```)/g);
+
+  return (
+    <div className="space-y-2.5 text-sm leading-relaxed">
+      {segments.map((seg, sIdx) => {
+        if (seg.startsWith("```")) {
+          const firstLineEnd = seg.indexOf("\n");
+          const lang = seg.slice(3, firstLineEnd).trim();
+          const code = seg.slice(firstLineEnd + 1, -3).trim();
+          return (
+            <div key={sIdx} className="my-2.5 rounded-lg overflow-hidden border border-border bg-muted/60 text-xs">
+              {lang && (
+                <div className="px-3 py-1 bg-muted font-mono text-[11px] text-muted-foreground border-b border-border">
+                  {lang}
+                </div>
+              )}
+              <pre className="p-3 overflow-x-auto font-mono text-primary font-medium">{code}</pre>
+            </div>
+          );
+        }
+
+        const lines = seg.split("\n");
+        const rendered = [];
+        let currentList = [];
+
+        const flushList = () => {
+          if (currentList.length > 0) {
+            rendered.push(
+              <ul key={`list-${rendered.length}`} className="space-y-1 my-1.5 pl-1">
+                {currentList.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-foreground/90">
+                    <span className="size-1.5 rounded-full bg-primary mt-2 shrink-0" />
+                    <span className="flex-1">{renderInlineText(item)}</span>
+                  </li>
+                ))}
+              </ul>
+            );
+            currentList = [];
+          }
+        };
+
+        lines.forEach((rawLine, lIdx) => {
+          const line = rawLine.trim();
+          if (!line) {
+            flushList();
+            return;
+          }
+
+          // Bullet items (starts with * or - or •)
+          if (/^[\*\-•]\s+/.test(line)) {
+            currentList.push(line.replace(/^[\*\-•]\s+/, ""));
+            return;
+          }
+
+          // Numbered list items (e.g. 1. or 2.)
+          if (/^\d+[\.\)]\s+/.test(line)) {
+            flushList();
+            const num = line.match(/^(\d+[\.\)])\s+/)[1];
+            const text = line.replace(/^\d+[\.\)]\s+/, "");
+            rendered.push(
+              <div key={`num-${lIdx}`} className="flex items-start gap-2 my-1 text-foreground/90">
+                <span className="font-semibold text-primary text-xs shrink-0 mt-0.5">{num}</span>
+                <span className="flex-1">{renderInlineText(text)}</span>
+              </div>
+            );
+            return;
+          }
+
+          // Headings (starts with # or ###)
+          if (/^#{1,6}\s+/.test(line)) {
+            flushList();
+            const heading = line.replace(/^#{1,6}\s+/, "");
+            rendered.push(
+              <h4 key={`h-${lIdx}`} className="font-semibold text-foreground text-sm mt-3 mb-1">
+                {renderInlineText(heading)}
+              </h4>
+            );
+            return;
+          }
+
+          flushList();
+          rendered.push(
+            <p key={`p-${lIdx}`} className="my-1 text-foreground/90">
+              {renderInlineText(line)}
+            </p>
+          );
+        });
+
+        flushList();
+        return <div key={sIdx}>{rendered}</div>;
+      })}
+    </div>
+  );
+}
+
+function renderInlineText(text) {
+  if (!text) return "";
+  // Parse bold and code cleanly, stripping raw stars and stray markdown symbols
+  const tokens = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  return tokens.map((token, idx) => {
+    if (token.startsWith("**") && token.endsWith("**")) {
+      const cleanBold = token.slice(2, -2).replace(/\*/g, "").trim();
+      return (
+        <strong key={idx} className="font-semibold text-foreground">
+          {cleanBold}
+        </strong>
+      );
+    }
+    if (token.startsWith("`") && token.endsWith("`")) {
+      return (
+        <code key={idx} className="px-1.5 py-0.5 rounded bg-muted/80 font-mono text-xs text-primary font-medium">
+          {token.slice(1, -1)}
+        </code>
+      );
+    }
+    // Clean out stray asterisks, hashtags, or markdown artifacts
+    const cleaned = token.replace(/\*{2,}/g, "").replace(/^#{1,6}\s*/g, "");
+    return cleaned;
+  });
 }

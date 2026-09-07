@@ -27,9 +27,10 @@ export default function Login() {
     setError("");
     setBusy(true);
     try {
-      const user = await login(email, password);
-      setUser(user);
-      toast.success(`Welcome back, ${user.name.split(" ")[0]}`);
+      const loggedUser = await login(email, password);
+      setUser(loggedUser);
+      const firstName = (loggedUser?.name || "Candidate").split(" ")[0];
+      toast.success(`Welcome back, ${firstName}`);
       navigate("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in.");

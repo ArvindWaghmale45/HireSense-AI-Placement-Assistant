@@ -43,6 +43,7 @@ function saveUsers(users) {
 }
 
 function strip(user) {
+  if (!user) return null;
   const { password: _password, ...rest } = user;
   return rest;
 }
@@ -61,6 +62,9 @@ export async function register(input) {
         email,
         password: input.password,
         targetRole: input.targetRole || "Software Engineer",
+        education: input.education || "",
+        resumeFileName: input.resumeFileName || "",
+        resumeText: input.resumeText || "",
         skills: input.skills || [],
       }),
     });

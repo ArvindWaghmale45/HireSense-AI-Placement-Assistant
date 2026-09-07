@@ -31,9 +31,9 @@ function ProfileBody() {
 
   useEffect(() => {
     if (!user) return;
-    setName(user.name);
-    setEducation(user.education);
-    setTargetRole(user.targetRole);
+    setName(user.name || "");
+    setEducation(user.education || "");
+    setTargetRole(user.targetRole || "");
     setSkills(user.skills || []);
     setInterviews(listInterviews(user.id));
     setAttempts(listAttempts(user.id));
@@ -65,13 +65,13 @@ function ProfileBody() {
   };
 
   const avg = interviews.length
-    ? Math.round((interviews.reduce((s, i) => s + i.score, 0) / interviews.length) * 10) / 10
+    ? Math.round((interviews.reduce((s, i) => s + (Number(i?.score) || 0), 0) / interviews.length) * 10) / 10
     : 0;
-  const best = interviews.reduce((m, i) => Math.max(m, i.score), 0);
+  const best = interviews.reduce((m, i) => Math.max(m, Number(i?.score) || 0), 0);
   const technical = interviews.filter((i) => i.type === "TECHNICAL");
   const hr = interviews.filter((i) => i.type === "HR");
-  const mcqTotal = attempts.reduce((s, a) => s + a.total, 0);
-  const mcqCorrect = attempts.reduce((s, a) => s + a.correct, 0);
+  const mcqTotal = attempts.reduce((s, a) => s + (Number(a?.total) || 0), 0);
+  const mcqCorrect = attempts.reduce((s, a) => s + (Number(a?.correct) || 0), 0);
 
   return (
     <>

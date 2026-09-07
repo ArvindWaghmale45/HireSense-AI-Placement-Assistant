@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
 import {
   BrainCircuit,
   FileText,
@@ -9,35 +10,42 @@ import {
   Target,
   TrendingUp,
   Briefcase,
+  ArrowRight,
 } from "lucide-react";
 
 const FEATURES = [
   {
+    to: "/interview",
     icon: Mic,
     title: "Mock Interviews",
-    text: "Technical and HR rounds with per-answer scoring and feedback, built from the skills on your resume.",
+    text: "Technical and HR rounds with real human voice questions and instant AI examiner scoring.",
   },
   {
+    to: "/prepare",
     icon: Target,
     title: "Placement Preparation",
     text: "Aptitude, technical and HR question sets with instant results and explanations.",
   },
   {
+    to: "/resume",
     icon: FileText,
     title: "Resume Analyzer",
     text: "Upload your resume for a readiness score, detected skills, gaps and concrete fixes.",
   },
   {
+    to: "/skills",
     icon: BrainCircuit,
     title: "Skill Analysis",
     text: "See which skills are strong, which need work, and what to learn for your target role.",
   },
   {
+    to: "/assistant",
     icon: MessageSquare,
     title: "AI Career Assistant",
     text: "Ask anything about preparation, topics or study plans across saved conversations.",
   },
   {
+    to: "/dashboard",
     icon: TrendingUp,
     title: "Progress Tracking",
     text: "Interviews completed, average score, best score and area-wise progress in one profile.",
@@ -45,20 +53,35 @@ const FEATURES = [
 ];
 
 export default function Landing() {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-4">
-          <span className="font-display text-xl font-bold tracking-tight">
+          <Link to="/" className="font-display text-xl font-bold tracking-tight">
             Hire<span className="text-primary">Sense</span>
-          </span>
+          </Link>
           <nav className="ml-auto flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/login">Login</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link to="/register">Register</Link>
-            </Button>
+            {user ? (
+              <>
+                <span className="hidden text-sm text-muted-foreground sm:inline">
+                  Hi, {(user?.name || "Candidate").split(" ")[0]}
+                </span>
+                <Button asChild size="sm">
+                  <Link to="/dashboard">Go to Dashboard →</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/login">Login</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link to="/register">Register</Link>
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -78,12 +101,27 @@ export default function Landing() {
           answers your prep questions.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg">
-            <Link to="/register">Start Preparing</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link to="/login">I already have an account</Link>
-          </Button>
+          {user ? (
+            <>
+              <Button asChild size="lg" className="gap-2">
+                <Link to="/interview">
+                  Start Mock Interview <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link to="/dashboard">Open Dashboard</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button asChild size="lg">
+                <Link to="/register">Start Preparing</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link to="/login">I already have an account</Link>
+              </Button>
+            </>
+          )}
         </div>
       </section>
 
@@ -106,13 +144,22 @@ export default function Landing() {
         <h2 className="text-center font-display text-3xl font-bold">Everything you need</h2>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((feature) => (
-            <Card key={feature.title} className="h-full">
-              <CardContent className="pt-6">
-                <feature.icon className="size-8 text-primary" />
-                <h3 className="mt-4 font-display text-lg font-semibold">{feature.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{feature.text}</p>
-              </CardContent>
-            </Card>
+            <Link
+              key={feature.title}
+              to={feature.to}
+              className="block group transition-all duration-200 hover:-translate-y-1"
+            >
+              <Card className="h-full border-border/80 group-hover:border-primary/50 group-hover:shadow-md transition-all">
+                <CardContent className="pt-6">
+                  <feature.icon className="size-8 text-primary transition-transform group-hover:scale-110" />
+                  <h3 className="mt-4 font-display text-lg font-semibold flex items-center justify-between">
+                    <span>{feature.title}</span>
+                    <ArrowRight className="size-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
+                  </h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{feature.text}</p>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
           <Card className="h-full border-dashed">
             <CardContent className="pt-6">
@@ -136,7 +183,9 @@ export default function Landing() {
             Create an account, add your resume, and start with a five question interview.
           </p>
           <Button asChild size="lg" variant="secondary" className="mt-6">
-            <Link to="/register">Start Preparing</Link>
+            <Link to={user ? "/interview" : "/register"}>
+              {user ? "Open Mock Interview" : "Start Preparing"}
+            </Link>
           </Button>
         </div>
       </section>

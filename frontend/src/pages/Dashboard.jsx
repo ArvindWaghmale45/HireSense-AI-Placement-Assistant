@@ -66,21 +66,23 @@ function DashboardBody() {
 
   const avg = interviews.length
     ? Math.round(
-        (interviews.reduce((sum, item) => sum + item.score, 0) / interviews.length) * 10,
+        (interviews.reduce((sum, item) => sum + (Number(item?.score) || 0), 0) / interviews.length) * 10,
       ) / 10
     : 0;
-  const best = interviews.reduce((max, item) => Math.max(max, item.score), 0);
-  const mcqTotal = attempts.reduce((sum, item) => sum + item.total, 0);
-  const mcqCorrect = attempts.reduce((sum, item) => sum + item.correct, 0);
+  const best = interviews.reduce((max, item) => Math.max(max, Number(item?.score) || 0), 0);
+  const mcqTotal = attempts.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
+  const mcqCorrect = attempts.reduce((sum, item) => sum + (Number(item?.correct) || 0), 0);
   const accuracy = mcqTotal ? Math.round((mcqCorrect / mcqTotal) * 100) : 0;
   const readiness = Math.round(avg * 6 + accuracy * 0.4);
+
+  const firstName = (user?.name || "Candidate").split(" ")[0];
 
   return (
     <>
       <PageHeader
-        title={`Welcome back, ${user.name.split(" ")[0]}`}
+        title={`Welcome back, ${firstName}`}
         subtitle={
-          user.targetRole
+          user?.targetRole
             ? `Preparing for ${user.targetRole}. Keep the streak going.`
             : "Let's get you interview ready."
         }

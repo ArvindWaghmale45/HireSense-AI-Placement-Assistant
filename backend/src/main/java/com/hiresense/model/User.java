@@ -34,7 +34,7 @@ public class User {
     private String resumeFileName;
 
     @Lob
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "LONGTEXT")
     private String resumeText;
 
     @ElementCollection(fetch = FetchType.EAGER)

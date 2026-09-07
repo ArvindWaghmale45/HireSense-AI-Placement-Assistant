@@ -6,30 +6,48 @@ import { getApiKey, callGeminiApi } from "./ai";
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export const KNOWN_SKILL_WHITELIST = [
+  // Embedded Systems, Hardware & ENTC / ECE
+  "Embedded Systems", "Embedded C", "C", "C++", "Microcontrollers", "Arduino", "Raspberry Pi",
+  "STM32", "8051", "PIC", "ARM", "ESP32", "ESP8266", "RTOS", "FreeRTOS", "NodeMCU",
+  "IoT", "Internet of Things", "MQTT", "Sensors", "Actuators", "PCB Design", "Proteus", "Keil", "Eagle", "KiCAD",
+  "VLSI", "Verilog", "VHDL", "FPGA", "MATLAB", "Simulink", "LabVIEW", "Digital Signal Processing", "DSP",
+  "Communication Protocols", "UART", "SPI", "I2C", "CAN", "RS232", "Zigbee", "Bluetooth", "BLE", "Wi-Fi",
+  "Telecommunication", "Wireless Communication", "Antennas", "Optical Fiber", "Cadence", "Multisim",
+  // Core Programming & CS
   "Java", "Spring Boot", "Spring", "Hibernate", "JPA", "Microservices",
-  "SQL", "MySQL", "PostgreSQL", "Oracle", "MongoDB", "Redis",
-  "Python", "Django", "Flask", "FastAPI", "C++", "C#", ".NET",
+  "SQL", "MySQL", "PostgreSQL", "Oracle", "MongoDB", "Redis", "SQLite",
+  "Python", "Django", "Django REST Framework", "DRF", "Flask", "FastAPI", "Pandas", "NumPy", "TensorFlow", "PyTorch", "OpenCV", "Scikit-Learn",
+  "SQLAlchemy", "Celery", "Pydantic", "Pytest",
+  "C#", ".NET", "Golang", "Rust",
+  // Web & Frontend
   "JavaScript", "TypeScript", "React", "Next.js", "Angular", "Vue", "Node.js", "Express",
-  "HTML", "CSS", "Tailwind CSS", "Bootstrap",
-  "Git", "GitHub", "Docker", "Kubernetes", "AWS", "Azure", "GCP", "Linux",
+  "HTML", "HTML5", "CSS", "CSS3", "Tailwind CSS", "Bootstrap", "Redux",
+  // Cloud, DevOps & Tools
+  "Git", "GitHub", "GitLab", "Docker", "Kubernetes", "AWS", "Azure", "GCP", "Linux",
   "REST APIs", "GraphQL", "Kafka", "Data Structures", "Algorithms", "DSA",
   "OOP", "DBMS", "Operating Systems", "Computer Networks", "System Design",
-  "JUnit", "Mockito", "Maven", "Gradle", "CI/CD", "Postman", "Agile"
+  "JUnit", "Mockito", "Maven", "Gradle", "CI/CD", "Postman", "Agile", "Jira"
 ];
 
 const ROLE_HINTS = [
+  { role: "Embedded Systems Engineer", words: ["embedded", "microcontroller", "arduino", "stm32", "arm", "rtos", "keil", "proteus", "iot"] },
+  { role: "IoT & Firmware Developer", words: ["iot", "esp32", "mqtt", "sensors", "firmware", "raspberry pi"] },
+  { role: "VLSI / Hardware Engineer", words: ["vlsi", "verilog", "vhdl", "fpga", "cadence", "pcb"] },
+  { role: "Electronics & Telecommunication Engineer", words: ["entc", "ece", "telecom", "dsp", "matlab", "wireless"] },
+  { role: "Python Full Stack Developer", words: ["python", "django", "fastapi", "react", "full stack", "fullstack"] },
+  { role: "Python Developer / AI Engineer", words: ["python", "django", "machine learning", "deep learning", "flask", "ai", "pandas"] },
   { role: "Java Full Stack Developer", words: ["java", "spring", "react", "full stack"] },
   { role: "Java Backend Developer", words: ["java", "spring", "hibernate", "backend"] },
   { role: "Frontend Developer", words: ["react", "javascript", "typescript", "frontend"] },
   { role: "Full Stack Developer", words: ["full stack", "fullstack", "mern"] },
-  { role: "Python Developer", words: ["python", "django", "flask"] },
-  { role: "Data Analyst", words: ["python", "pandas", "tableau", "power bi", "analytics"] },
+  { role: "Data Analyst", words: ["pandas", "tableau", "power bi", "analytics"] },
   { role: "Software Engineer", words: ["software", "engineer", "developer"] },
 ];
 
 const EDU_HINTS = [
+  "entc", "e&tc", "electronics and telecommunication", "electronics & communication", "ece",
   "b.tech", "btech", "b.e", "bachelor", "master", "m.tech",
-  "mca", "bca", "b.sc", "diploma", "computer engineering", "computer science"
+  "mca", "bca", "b.sc", "diploma", "computer engineering", "computer science", "information technology"
 ];
 
 /**
@@ -72,7 +90,31 @@ async function readFileText(file) {
 }
 
 /**
- * Exact word-boundary skill extractor (prevents false matches like "c" or "linux" if not in text)
+ * Dynamically parses the "Skills" or "Technical Skills" section directly from resume text
+ */
+export function extractSkillsFromSections(text) {
+  const dynamicSkills = [];
+  // Match sections like "Technical Skills", "Skills:", "Key Skills", "Technologies:", etc.
+  const sectionRegex = /(?:technical skills|skills|key skills|technologies|tools\s*&\s*technologies|competencies)[\s\S]{1,500}?(?=\n\s*(?:projects|experience|education|certifications|achievements|academic|personal details|$))/i;
+  const match = text.match(sectionRegex);
+  if (match && match[0]) {
+    const sectionBody = match[0].replace(/^(?:technical skills|skills|key skills|technologies|tools\s*&\s*technologies|competencies)[:\s-]*/i, "");
+    const tokens = sectionBody.split(/[\n,;•|●\/\(\)]+/).map(s => s.trim()).filter(s => s.length >= 2 && s.length <= 30);
+    for (const token of tokens) {
+      if (!/^(and|or|with|using|in|basic|proficient|knowledge of|good|strong)$/i.test(token)) {
+        // Clean up leading colons or bullets
+        const clean = token.replace(/^[-:•*\s]+|[-:•*\s]+$/g, "").trim();
+        if (clean.length >= 2 && !clean.includes("http")) {
+          dynamicSkills.push(clean);
+        }
+      }
+    }
+  }
+  return dynamicSkills;
+}
+
+/**
+ * Exact word-boundary skill extractor across all engineering domains
  */
 export function extractSkillsStrict(text) {
   const found = [];
@@ -90,6 +132,10 @@ export function extractSkillsStrict(text) {
       regex = /\b(dsa|data\s+structures?\s+(?:and|&)\s+algorithms?)\b/i;
     } else if (skill === "OOP") {
       regex = /\b(oop|oops|object[\s-]oriented\s+programming)\b/i;
+    } else if (skill === "IoT") {
+      regex = /\b(iot|internet of things)\b/i;
+    } else if (skill === "RTOS") {
+      regex = /\b(rtos|real[\s-]time operating system)\b/i;
     } else {
       regex = new RegExp(`\\b${escaped}\\b`, "i");
     }
@@ -99,13 +145,21 @@ export function extractSkillsStrict(text) {
     }
   }
 
+  // Combine with dynamically discovered skills from resume sections
+  const dynamic = extractSkillsFromSections(text);
+  for (const dyn of dynamic) {
+    if (!found.some(f => f.toLowerCase() === dyn.toLowerCase())) {
+      found.push(dyn);
+    }
+  }
+
   return Array.from(new Set(found));
 }
 
 /**
  * AI-powered resume analysis:
  * 1. Uses pdfjs-dist to extract 100% true textual content from the PDF.
- * 2. Prompts Gemini 3.5 Flash to extract ONLY what is explicitly written with ZERO hallucinations.
+ * 2. Prompts Gemini AI to extract accurately for ANY engineering discipline (ENTC, CS, IT, etc.)
  */
 export async function analyzeResume(file) {
   const isPdf = file.name.endsWith(".pdf") || file.type === "application/pdf";
@@ -120,24 +174,31 @@ export async function analyzeResume(file) {
 
   const apiKey = getApiKey();
 
-  // 1. AI Extraction via Gemini 3.5 Flash using true extracted resume text
+  // 1. AI Extraction via Gemini using true extracted resume text
   if (apiKey && extractedText && extractedText.length > 50) {
     try {
-      const prompt = `You are a strict, highly accurate Technical Recruiter and ATS Specialist.
+      const prompt = `You are an expert Technical Recruiter, ATS Evaluation Specialist, and Multi-Disciplinary Engineering Evaluator.
+The candidate may belong to ANY engineering discipline:
+- Electronics & Telecommunication (ENTC / ECE)
+- Computer Science & IT
+- Electrical Engineering / Embedded Systems & IoT
+- Mechanical / Civil / Data Science & AI
+
 The following is the EXACT, literal text extracted from the candidate's resume:
 """
 ${extractedText.slice(0, 10000)}
 """
 
-CRITICAL ACCURACY INSTRUCTIONS:
-1. ONLY extract skills, tools, frameworks, and programming languages that are EXPLICITLY and LITERALLY mentioned in the text above.
-2. DO NOT invent, assume, extrapolate, or hallucinate skills (e.g., if Linux, C, Python, AWS, etc. are NOT mentioned in the text above, DO NOT include them!).
-3. Extract candidate full name, email, and education (Degree, Branch, College Name, Year/CGPA).
-4. Extract all projects explicitly listed (title, tech stack used, and 1-sentence description).
-5. Determine the best matching Target Role based on their actual projects.
-6. Provide an honest, realistic ATS Readiness Score (out of 100).
-7. List 3 key strengths, 2-3 genuine gaps, and 3 actionable suggestions to improve their profile.
-8. Generate a 200-word technical summary of the candidate's actual projects and competencies to be used by our AI interviewer.
+CRITICAL INSTRUCTIONS:
+1. Extract ALL genuine technical skills, tools, hardware platforms, microcontrollers, embedded tools, communication protocols, programming languages, databases, and software frameworks explicitly listed in the text.
+   (For ENTC/ECE, capture skills like Embedded C, Arduino, Raspberry Pi, Microcontrollers, Keil, Proteus, IoT, MQTT, UART/SPI/I2C, Sensors, MATLAB, VLSI, Verilog, etc.).
+   (For CS/IT, capture skills like Java, Python, React, Spring Boot, SQL, DSA, etc.).
+2. Extract the candidate's full name, email, and education (Degree, Branch/Discipline e.g., ENTC or Computer Engineering, College Name, Year/CGPA).
+3. Extract all projects explicitly listed (title, tech stack used, and 1-sentence description).
+4. Determine the best matching Target Role tailored to their specific discipline and projects (e.g., "Embedded Systems Engineer", "IoT Developer", "Full Stack Developer", "Software Engineer").
+5. Provide an honest, realistic ATS Readiness Score (out of 100).
+6. List 3 key strengths, 2-3 genuine gaps, and 3 actionable suggestions to improve their profile for campus and off-campus placements.
+7. Generate a 200-word technical summary of the candidate's actual projects and competencies to be used by our AI interviewer.
 
 Return ONLY a valid JSON object matching this schema:
 {
@@ -145,7 +206,7 @@ Return ONLY a valid JSON object matching this schema:
   "email": "email@example.com",
   "education": "Degree, Branch, College, Year/CGPA",
   "targetRole": "Role Title",
-  "skills": ["Skill1", "Skill2"],
+  "skills": ["Skill1", "Skill2", "Skill3"],
   "projects": [
     { "title": "Project Title", "techStack": ["Skill1", "Skill2"], "description": "Short description" }
   ],
@@ -162,23 +223,30 @@ Return ONLY a valid JSON object matching this schema:
       });
 
       if (raw) {
-        const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-        const cleanSkills = Array.isArray(parsed.skills) && parsed.skills.length > 0
-          ? parsed.skills
-          : extractSkillsStrict(extractedText);
+        let parsed = null;
+        try {
+          const jsonMatch = raw.match(/\{[\s\S]*\}/);
+          parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw.replace(/```json|```/g, "").trim());
+        } catch (parseErr) {
+          console.warn("JSON parsing of resume AI output failed:", parseErr);
+        }
+
+        const dynamicFallback = extractSkillsStrict(extractedText);
+        const aiSkills = Array.isArray(parsed?.skills) ? parsed.skills : [];
+        const cleanSkills = Array.from(new Set([...aiSkills, ...dynamicFallback])).filter(Boolean);
 
         return {
           fileName: file.name,
-          score: Math.max(30, Math.min(98, Number(parsed.score) || 75)),
-          skills: cleanSkills,
-          education: parsed.education || "Not specified",
-          targetRole: parsed.targetRole || "Software Engineer",
+          score: Math.max(30, Math.min(98, Number(parsed?.score) || 75)),
+          skills: cleanSkills.length > 0 ? cleanSkills : dynamicFallback,
+          education: parsed?.education || "Engineering Graduate",
+          targetRole: parsed?.targetRole || (cleanSkills.includes("Python") ? "Python Full Stack Developer" : "Software Engineer"),
           name: parsed.name || file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
           email: parsed.email || "",
           projects: Array.isArray(parsed.projects) ? parsed.projects : [],
-          strengths: parsed.strengths || ["Accurate technical profile"],
-          gaps: parsed.gaps || ["Add live project URLs"],
-          suggestions: parsed.suggestions || ["Highlight quantitative outcomes"],
+          strengths: parsed.strengths || ["Well-structured technical background"],
+          gaps: parsed.gaps || ["Add live project links or hardware demo videos"],
+          suggestions: parsed.suggestions || ["Highlight quantitative outcomes and core technical depth"],
           wordCount: extractedText.split(/\s+/).filter(Boolean).length,
           resumeText: parsed.resumeSummary || extractedText.slice(0, 3000),
         };
@@ -203,9 +271,21 @@ Return ONLY a valid JSON object matching this schema:
       .map((hint) => hint.toUpperCase())
       .join(" / ") || "Engineering / B.Tech";
 
+  const isEntcOrHardware =
+    lower.includes("entc") ||
+    lower.includes("e&tc") ||
+    lower.includes("embedded") ||
+    lower.includes("microcontroller") ||
+    lower.includes("electronics") ||
+    strictSkills.some((s) => /embedded|arduino|microcontroller|iot|sensors|vlsi|matlab/i.test(s));
+
   const targetRole =
     ROLE_HINTS.find((hint) => hint.words.some((word) => lower.includes(word)))?.role ??
-    (strictSkills.includes("Java") ? "Java Backend Developer" : "Software Engineer");
+    (isEntcOrHardware
+      ? "Embedded Systems Engineer"
+      : strictSkills.includes("Java")
+        ? "Java Backend Developer"
+        : "Software Engineer");
 
   const wordCount = extractedText.split(/\s+/).filter(Boolean).length;
 
@@ -234,7 +314,7 @@ Return ONLY a valid JSON object matching this schema:
   return {
     fileName: file.name,
     score,
-    skills: strictSkills.length ? strictSkills : ["Java", "OOP", "SQL"],
+    skills: strictSkills.length ? strictSkills : (isEntcOrHardware ? ["Embedded Systems", "C", "Microcontrollers", "IoT"] : ["Engineering Fundamentals", "Problem Solving", "Technical Skills"]),
     education,
     targetRole,
     name: nameGuess,
