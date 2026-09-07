@@ -5,8 +5,11 @@ const API_KEY_STORAGE = "hiresense:ai_api_key";
 const AI_MODEL_STORAGE = "hiresense:ai_model";
 
 export function getApiKey() {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem(API_KEY_STORAGE) || "";
+  if (typeof window !== "undefined") {
+    const customKey = localStorage.getItem(API_KEY_STORAGE);
+    if (customKey && customKey.trim()) return customKey.trim();
+  }
+  return import.meta.env.VITE_GEMINI_API_KEY || "";
 }
 
 export function setApiKey(key) {

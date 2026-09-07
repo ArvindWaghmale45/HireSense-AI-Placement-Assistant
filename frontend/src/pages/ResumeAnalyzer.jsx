@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeResume } from "@/lib/api/resume";
-import { Upload, FileCheck2, CheckCircle2, AlertCircle, Sparkles, BrainCircuit } from "lucide-react";
+import { Upload, FileCheck2, CheckCircle2, AlertCircle, Sparkles, BrainCircuit, FolderGit2 } from "lucide-react";
 
 export default function ResumeAnalyzer() {
   return (
@@ -165,6 +165,38 @@ function ResumeBody() {
                   </div>
                 </CardContent>
               </Card>
+
+              {analysis.projects && analysis.projects.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FolderGit2 className="size-4 text-primary" />
+                      Extracted Projects ({analysis.projects.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {analysis.projects.map((proj, idx) => (
+                      <div key={idx} className="p-3 rounded-lg border border-border bg-card/60">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="font-semibold text-sm">{proj.title}</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {(proj.techStack || []).map((t) => (
+                              <Badge key={t} variant="outline" className="text-[10px] py-0">
+                                {t}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        {proj.description && (
+                          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                            {proj.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
 
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>
