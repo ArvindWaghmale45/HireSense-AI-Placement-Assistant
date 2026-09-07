@@ -14,9 +14,9 @@ build/
 # Backend builds (Maven / Gradle)
 backend/target/
 backend/build/
-backend/.mvn/
 backend/*.jar
 backend/*.war
+!backend/.mvn/wrapper/maven-wrapper.properties
 
 # Logs
 logs

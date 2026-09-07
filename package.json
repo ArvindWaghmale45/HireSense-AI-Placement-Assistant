@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "npm run dev --prefix frontend",
     "build": "npm run build --prefix frontend",
-    "preview": "npm run preview --prefix frontend"
+    "preview": "npm run preview --prefix frontend",
+    "backend:dev": "cmd.exe /c \"cd backend && mvnw.cmd spring-boot:run\"",
+    "backend:build": "cmd.exe /c \"cd backend && mvnw.cmd clean package -DskipTests\""
   }
 }
