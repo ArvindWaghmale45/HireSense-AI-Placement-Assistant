@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -207,6 +209,39 @@ function InterviewBody() {
       });
     }
   }, [user, stage]);
+
+  // Celebration particle effects when an interview round is submitted with score >= 7/10
+  useEffect(() => {
+    if (stage === "result" && result) {
+      const scoreVal = Number(result.score) || 0;
+      if (scoreVal >= 7) {
+        try {
+          confetti({
+            particleCount: 90,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ec4899"],
+          });
+          setTimeout(() => {
+            confetti({
+              particleCount: 50,
+              angle: 60,
+              spread: 60,
+              origin: { x: 0 },
+            });
+            confetti({
+              particleCount: 50,
+              angle: 120,
+              spread: 60,
+              origin: { x: 1 },
+            });
+          }, 350);
+        } catch (e) {
+          console.warn("Celebration confetti failed:", e);
+        }
+      }
+    }
+  }, [stage, result]);
 
   // Clean up media, audio recorder, and speech on stage change
   useEffect(() => {
@@ -493,209 +528,281 @@ function InterviewBody() {
               </div>
             </Card>
 
-            {/* AI Interviewer Audio Card */}
-            <Card className="border-border/80 bg-card">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                    <Bot className="size-5" />
+            {/* AI Interviewer Audio Card with Animated Equalizer Soundwave Visualizer */}
+            <Card className="border-border/80 bg-card overflow-hidden relative shadow-sm">
+              {isSpeakingQuestion && (
+                <div className="absolute inset-0 bg-primary/5 pointer-events-none transition-colors" />
+              )}
+              <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="relative">
+                    <div
+                      className={`size-11 rounded-full flex items-center justify-center transition-all ${
+                        isSpeakingQuestion
+                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30"
+                          : "bg-primary/10 text-primary"
+                      }`}
+                    >
+                      <Bot className="size-5" />
+                    </div>
+                    {isSpeakingQuestion && (
+                      <span className="absolute -inset-1 rounded-full border-2 border-primary/60 animate-ping pointer-events-none" />
+                    )}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-sm">AI Interviewer</h4>
-                    <p className="text-xs text-muted-foreground">
-                      {isSpeakingQuestion ? "Speaking question…" : "Listen or replay the question"}
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-sm">AI Interviewer</h4>
+                      {isSpeakingQuestion ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Speaking
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          Ready
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {isSpeakingQuestion ? "Voicing placement question..." : "Listen or replay the question"}
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant={isSpeakingQuestion ? "destructive" : "outline"}
-                  size="sm"
-                  onClick={handleSpeakQuestion}
-                  className="gap-1.5"
-                >
-                  {isSpeakingQuestion ? (
-                    <>
-                      <VolumeX className="size-4" /> Stop
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="size-4" /> Speak Question
-                    </>
-                  )}
-                </Button>
+
+                {/* Soundwave Equalization Bars */}
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                  <div
+                    className={`flex items-end gap-1 h-7 px-2.5 py-1 rounded-lg border transition-all ${
+                      isSpeakingQuestion
+                        ? "bg-primary/10 border-primary/30"
+                        : "bg-muted/40 border-border/50 opacity-40"
+                    }`}
+                    title={isSpeakingQuestion ? "Active Speech Equalizer" : "Soundwave Idle"}
+                  >
+                    {[40, 75, 100, 60, 90, 50, 85, 65, 95, 45].map((h, i) => (
+                      <motion.span
+                        key={i}
+                        animate={
+                          isSpeakingQuestion
+                            ? {
+                                height: ["4px", `${(h / 100) * 22}px`, "4px"],
+                              }
+                            : { height: "4px" }
+                        }
+                        transition={{
+                          repeat: Infinity,
+                          duration: 0.65 + (i % 3) * 0.15,
+                          ease: "easeInOut",
+                          delay: (i * 0.08) % 0.4,
+                        }}
+                        className={`w-1 rounded-full transition-colors ${
+                          isSpeakingQuestion
+                            ? "bg-gradient-to-t from-primary to-cyan-400"
+                            : "bg-muted-foreground/50"
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  <Button
+                    variant={isSpeakingQuestion ? "destructive" : "outline"}
+                    size="sm"
+                    onClick={handleSpeakQuestion}
+                    className="gap-1.5 shadow-xs whitespace-nowrap"
+                  >
+                    {isSpeakingQuestion ? (
+                      <>
+                        <VolumeX className="size-4" /> Stop
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="size-4" /> Speak Question
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
           </div>
 
-          {/* RIGHT: QUESTION & VOICE-TO-TEXT ANSWER */}
+          {/* RIGHT: QUESTION & VOICE-TO-TEXT ANSWER WITH SMOOTH TRANSITION */}
           <div className="space-y-4">
-            <Card className="border-border">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="font-medium">
-                    {current.skill}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground font-mono">
-                    ID: {current.id}
-                  </span>
-                </div>
-                <CardTitle className="mt-2 text-xl font-display leading-snug">
-                  {current.text}
-                </CardTitle>
-                <CardDescription>
-                  Speak your answer clearly using the microphone button, or type in the box below.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Voice recording button & Live status */}
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-border bg-secondary/30">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      type="button"
-                      onClick={handleToggleVoice}
-                      variant={isListening || isRecording ? "destructive" : "default"}
-                      size="sm"
-                      className={`gap-2 ${isListening || isRecording ? "animate-pulse shadow-md shadow-destructive/20" : ""
-                        }`}
-                    >
-                      {isListening || isRecording ? (
-                        <>
-                          <MicOff className="size-4" /> Stop Speaking
-                        </>
-                      ) : (
-                        <>
-                          <Mic className="size-4" /> Speak Answer (Mic)
-                        </>
-                      )}
-                    </Button>
-
-                    {/* Accent / Language toggle */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLanguage(selectedLang === "en-IN" ? "en-US" : "en-IN")}
-                      className="text-xs h-8 px-2 text-muted-foreground hover:text-foreground"
-                      title="Click to switch speech accent between Indian English and US English"
-                    >
-                      {selectedLang === "en-IN" ? "🇮🇳 English (IN)" : "🇺🇸 English (US)"}
-                    </Button>
-
-                    {/* AI Transcribe Button (when audio was recorded) */}
-                    {audioBlob && !isListening && !isRecording && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleAiTranscribe}
-                        disabled={isTranscribingAudio}
-                        className="text-xs h-8 gap-1.5 font-medium border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
-                        title="Transcribe recorded audio directly with Google Gemini AI for technical terminology"
-                      >
-                        {isTranscribingAudio ? (
-                          <>
-                            <Loader2 className="size-3 animate-spin" /> Transcribing…
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="size-3 text-primary" /> AI Refine Text
-                          </>
-                        )}
-                      </Button>
-                    )}
-
-                    {(isListening || isRecording) && (
-                      <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-destructive/10 border border-destructive/20">
-                        <span className="flex items-center gap-1.5 text-xs text-destructive font-medium">
-                          <span className="size-2 rounded-full bg-destructive animate-ping" />
-                          Listening…
-                        </span>
-                        {/* Dynamic audio equalizer visualizer bars */}
-                        <div
-                          className="flex items-end gap-0.5 h-4 px-1"
-                          title={`Mic input level: ${audioLevel}%`}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current?.id || index}
+                initial={{ opacity: 0, x: 25 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -25 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+              >
+                <Card className="border-border shadow-xs">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="font-medium">
+                        {current.skill}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        ID: {current.id}
+                      </span>
+                    </div>
+                    <CardTitle className="mt-2 text-xl font-display leading-snug">
+                      {current.text}
+                    </CardTitle>
+                    <CardDescription>
+                      Speak your answer clearly using the microphone button, or type in the box below.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Voice recording button & Live status */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border border-border bg-secondary/30">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          onClick={handleToggleVoice}
+                          variant={isListening || isRecording ? "destructive" : "default"}
+                          size="sm"
+                          className={`gap-2 ${isListening || isRecording ? "animate-pulse shadow-md shadow-destructive/20" : ""
+                            }`}
                         >
-                          <span
-                            className="w-1 bg-destructive rounded-full transition-all duration-75"
-                            style={{ height: `${Math.max(4, (audioLevel * 0.9) % 16 + 4)}px` }}
-                          />
-                          <span
-                            className="w-1 bg-destructive rounded-full transition-all duration-75"
-                            style={{ height: `${Math.max(4, (audioLevel * 1.3) % 16 + 4)}px` }}
-                          />
-                          <span
-                            className="w-1 bg-destructive rounded-full transition-all duration-75"
-                            style={{ height: `${Math.max(4, (audioLevel * 1.5) % 16 + 4)}px` }}
-                          />
-                          <span
-                            className="w-1 bg-destructive rounded-full transition-all duration-75"
-                            style={{ height: `${Math.max(4, (audioLevel * 1.1) % 16 + 4)}px` }}
-                          />
-                          <span
-                            className="w-1 bg-destructive rounded-full transition-all duration-75"
-                            style={{ height: `${Math.max(4, (audioLevel * 0.7) % 16 + 4)}px` }}
-                          />
-                        </div>
-                        <span className="text-[11px] font-mono text-destructive/80">
-                          {audioLevel > 5 ? "Audio detected" : "Mic ready"}
-                        </span>
+                          {isListening || isRecording ? (
+                            <>
+                              <MicOff className="size-4" /> Stop Speaking
+                            </>
+                          ) : (
+                            <>
+                              <Mic className="size-4" /> Speak Answer (Mic)
+                            </>
+                          )}
+                        </Button>
+
+                        {/* Accent / Language toggle */}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLanguage(selectedLang === "en-IN" ? "en-US" : "en-IN")}
+                          className="text-xs h-8 px-2 text-muted-foreground hover:text-foreground"
+                          title="Click to switch speech accent between Indian English and US English"
+                        >
+                          {selectedLang === "en-IN" ? "🇮🇳 English (IN)" : "🇺🇸 English (US)"}
+                        </Button>
+
+                        {/* AI Transcribe Button (when audio was recorded) */}
+                        {audioBlob && !isListening && !isRecording && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleAiTranscribe}
+                            disabled={isTranscribingAudio}
+                            className="text-xs h-8 gap-1.5 font-medium border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
+                            title="Transcribe recorded audio directly with Google Gemini AI for technical terminology"
+                          >
+                            {isTranscribingAudio ? (
+                              <>
+                                <Loader2 className="size-3 animate-spin" /> Transcribing…
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="size-3 text-primary" /> AI Refine Text
+                              </>
+                            )}
+                          </Button>
+                        )}
+
+                        {(isListening || isRecording) && (
+                          <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-destructive/10 border border-destructive/20">
+                            <span className="flex items-center gap-1.5 text-xs text-destructive font-medium">
+                              <span className="size-2 rounded-full bg-destructive animate-ping" />
+                              Listening…
+                            </span>
+                            {/* Dynamic audio equalizer visualizer bars */}
+                            <div
+                              className="flex items-end gap-0.5 h-4 px-1"
+                              title={`Mic input level: ${audioLevel}%`}
+                            >
+                              <span
+                                className="w-1 bg-destructive rounded-full transition-all duration-75"
+                                style={{ height: `${Math.max(4, (audioLevel * 0.9) % 16 + 4)}px` }}
+                              />
+                              <span
+                                className="w-1 bg-destructive rounded-full transition-all duration-75"
+                                style={{ height: `${Math.max(4, (audioLevel * 1.3) % 16 + 4)}px` }}
+                              />
+                              <span
+                                className="w-1 bg-destructive rounded-full transition-all duration-75"
+                                style={{ height: `${Math.max(4, (audioLevel * 1.5) % 16 + 4)}px` }}
+                              />
+                              <span
+                                className="w-1 bg-destructive rounded-full transition-all duration-75"
+                                style={{ height: `${Math.max(4, (audioLevel * 1.1) % 16 + 4)}px` }}
+                              />
+                              <span
+                                className="w-1 bg-destructive rounded-full transition-all duration-75"
+                                style={{ height: `${Math.max(4, (audioLevel * 0.7) % 16 + 4)}px` }}
+                              />
+                            </div>
+                            <span className="text-[11px] font-mono text-destructive/80">
+                              {audioLevel > 5 ? "Audio detected" : "Mic ready"}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  {answer && (
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={() => {
-                        setAnswer("");
-                        resetTranscript();
-                        resetRecording();
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      <RotateCcw className="mr-1 size-3" /> Clear text
-                    </Button>
-                  )}
-                </div>
+                      {answer && (
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => {
+                            setAnswer("");
+                            resetTranscript();
+                            resetRecording();
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <RotateCcw className="mr-1 size-3" /> Clear text
+                        </Button>
+                      )}
+                    </div>
 
-                {/* Answer Textarea */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="answer" className="text-xs font-medium text-muted-foreground">
-                    Your Response:
-                  </Label>
-                  <Textarea
-                    id="answer"
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    rows={7}
-                    placeholder="Speak your response using the microphone above, or type it here. Include key concepts, definitions, and real-world examples."
-                    className="font-normal leading-relaxed text-sm resize-y"
-                  />
-                </div>
+                    {/* Answer Textarea */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="answer" className="text-xs font-medium text-muted-foreground">
+                        Your Response:
+                      </Label>
+                      <Textarea
+                        id="answer"
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        rows={7}
+                        placeholder="Speak your response using the microphone above, or type it here. Include key concepts, definitions, and real-world examples."
+                        className="font-normal leading-relaxed text-sm resize-y"
+                      />
+                    </div>
 
-                {/* Submission Actions */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                  <Button
-                    variant="ghost"
-                    onClick={handleSubmitAnswer}
-                    disabled={busy}
-                    className="text-muted-foreground"
-                  >
-                    Skip Question
-                  </Button>
-                  <Button
-                    onClick={handleSubmitAnswer}
-                    disabled={busy}
-                    size="lg"
-                    className="gap-2 font-medium"
-                  >
-                    {busy && <Loader2 className="size-4 animate-spin" />}
-                    {index + 1 === questions.length ? "Finish & Evaluate" : "Submit Answer & Next"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                    {/* Submission Actions */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                      <Button
+                        variant="ghost"
+                        onClick={handleSubmitAnswer}
+                        disabled={busy}
+                        className="text-muted-foreground"
+                      >
+                        Skip Question
+                      </Button>
+                      <Button
+                        onClick={handleSubmitAnswer}
+                        disabled={busy}
+                        size="lg"
+                        className="gap-2 font-medium"
+                      >
+                        {busy && <Loader2 className="size-4 animate-spin" />}
+                        {index + 1 === questions.length ? "Finish & Evaluate" : "Submit Answer & Next"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>

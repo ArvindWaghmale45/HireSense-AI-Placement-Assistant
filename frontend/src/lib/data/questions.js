@@ -1,16 +1,66 @@
 export const SKILL_LIBRARY = [
+  // Programming Languages
   "Java",
+  "Python",
+  "C++",
+  "C",
+  "JavaScript",
+  "TypeScript",
+  "SQL",
+  "Kotlin",
+  // Core CS
+  "Data Structures",
+  "Algorithms",
   "OOP",
   "DBMS",
-  "SQL",
-  "JavaScript",
-  "React",
-  "HTML/CSS",
-  "Python",
-  "Data Structures",
+  "Operating Systems",
+  "Computer Networks",
+  "System Design",
+  // Backend & APIs
   "Spring Boot",
+  "Hibernate",
+  "REST APIs",
+  "Microservices",
+  "Node.js",
+  "Express.js",
+  "Django",
+  "FastAPI",
+  // Frontend
+  "React",
+  "Next.js",
+  "HTML/CSS",
+  "Tailwind CSS",
+  "Redux",
+  // Databases
+  "MySQL",
+  "PostgreSQL",
+  "MongoDB",
+  "Redis",
+  // Cloud & DevOps
   "Git",
+  "Docker",
+  "Kubernetes",
+  "AWS",
+  "Linux",
+  "CI/CD",
+  // Data Science & AI
+  "Machine Learning",
+  "Deep Learning",
+  "Pandas",
+  "NumPy",
+  "Power BI",
+  // Testing & Security
+  "JUnit",
+  "Selenium",
+  "Postman",
+  "Cybersecurity",
+  // Embedded / ENTC
+  "Embedded C",
+  "Microcontrollers",
+  "IoT",
+  // Soft skills
   "Communication",
+  "Problem Solving",
 ];
 
 const q = (id, skill, difficulty, text, keywords) => ({
