@@ -338,7 +338,7 @@ function InterviewBody() {
             {/* Webcam feed */}
             <Card className="overflow-hidden bg-black/90 border-2 border-primary/20 shadow-lg relative">
               <div className="relative aspect-video w-full flex items-center justify-center bg-slate-950">
-                {enableCamera && isCameraOn ? (
+                {enableCamera && isCameraOn && !mediaError ? (
                   <video
                     ref={attachVideo}
                     autoPlay
@@ -346,6 +346,21 @@ function InterviewBody() {
                     muted
                     className="w-full h-full object-cover scale-x-[-1]"
                   />
+                ) : mediaError ? (
+                  <div className="flex flex-col items-center justify-center text-center p-6 bg-red-950/60 border border-red-500/40 rounded-lg text-white max-w-sm m-auto z-10">
+                    <CircleAlert className="size-10 text-red-400 mb-2" />
+                    <p className="text-sm font-semibold text-red-200">Camera Notice</p>
+                    <p className="text-xs text-red-300/90 mt-1.5 leading-relaxed">{mediaError}</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3 text-xs border-red-500/50 hover:bg-red-900/40 text-red-100"
+                      onClick={() => startStream()}
+                    >
+                      <RotateCcw className="size-3.5 mr-1.5" />
+                      Retry Camera
+                    </Button>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center text-muted-foreground p-6 text-center">
                     <CameraOff className="size-12 mb-2 opacity-50 text-white" />

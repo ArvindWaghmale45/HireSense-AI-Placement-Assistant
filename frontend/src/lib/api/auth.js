@@ -4,7 +4,7 @@ const USERS_KEY = "users";
 const SESSION_KEY = "session";
 const TOKEN_KEY = "hiresense:token";
 const STORED_USER_KEY = "hiresense:user";
-const API_BASE_URL = "http://localhost:8080/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
 export function getAuthToken() {
   if (typeof window === "undefined") return null;
