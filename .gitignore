@@ -1,12 +1,22 @@
 # Dependencies
 node_modules/
+frontend/node_modules/
 .pnp
 .pnp.js
 
-# Production build
+# Frontend production builds
 dist/
 dist-ssr/
+frontend/dist/
+frontend/dist-ssr/
 build/
+
+# Backend builds (Maven / Gradle)
+backend/target/
+backend/build/
+backend/.mvn/
+backend/*.jar
+backend/*.war
 
 # Logs
 logs
@@ -16,16 +26,19 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Environment variables & local secrets
+# Environment & Local configurations
 .env
 .env.local
 .env.*.local
 *.local
+backend/src/main/resources/application-local.properties
+backend/src/main/resources/application-local.yml
 
-# Editor & OS files
+# IDE and OS files
 .vscode/*
 !.vscode/extensions.json
 .idea/
+*.iml
 .DS_Store
 Thumbs.db
 *.suo
@@ -34,7 +47,7 @@ Thumbs.db
 *.sln
 *.sw?
 
-# IDE & Gemini artifacts
+# Agent & AI Artifacts
 .gemini/
 .system_generated/
 scratch/
