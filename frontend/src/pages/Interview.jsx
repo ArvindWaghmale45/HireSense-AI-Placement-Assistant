@@ -29,6 +29,8 @@ import {
   speakQuestion,
   stopSpeaking,
   unlockAudioAndSpeech,
+  playAudioCue,
+  testGeminiConnection,
   INTERVIEW_TOPICS,
 } from "@/lib/api/ai";
 import {
@@ -49,6 +51,9 @@ import {
   Activity,
   Play,
   Headphones,
+  ChevronDown,
+  ChevronUp,
+  Zap,
 } from "lucide-react";
 
 export default function Interview() {
@@ -115,6 +120,40 @@ function InterviewBody() {
   } = useAudioRecorder();
 
   const [isTranscribingAudio, setIsTranscribingAudio] = useState(false);
+  const [testingAi, setTestingAi] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState(null);
+  const [isCameraCollapsedMobile, setIsCameraCollapsedMobile] = useState(false);
+
+  const handleTestAiConnection = async () => {
+    setTestingAi(true);
+    setAiTestResult(null);
+    const startTime = performance.now();
+    try {
+      const res = await testGeminiConnection();
+      const elapsed = Math.round(performance.now() - startTime);
+      if (res.ok) {
+        setAiTestResult({
+          ok: true,
+          message: `Gemini AI is operational (${res.model}) · ${elapsed}ms`,
+        });
+        toast.success(`Gemini AI is active and responsive! (${elapsed}ms)`);
+      } else {
+        setAiTestResult({
+          ok: false,
+          message: res.error || "Failed to reach Gemini API",
+        });
+        toast.error("Gemini API error: " + (res.error || "Failed"));
+      }
+    } catch (err) {
+      setAiTestResult({
+        ok: false,
+        message: err.message,
+      });
+      toast.error("AI test error: " + err.message);
+    } finally {
+      setTestingAi(false);
+    }
+  };
 
   // Voice speech-to-text hook with accent selection and no duplication
   const {
@@ -291,6 +330,7 @@ function InterviewBody() {
 
     // 1. Immediately unlock mobile audio & speech on direct candidate tap
     unlockAudioAndSpeech();
+    playAudioCue("start");
 
     try {
       if (enableCamera) {
@@ -335,9 +375,12 @@ function InterviewBody() {
 
   const handleToggleVoice = async () => {
     if (isListening || isRecording) {
+      playAudioCue("mic_off");
       stopListening();
       stopRecording();
     } else {
+      unlockAudioAndSpeech();
+      playAudioCue("mic_on");
       if (isSpeechSupported) {
         startListening();
       }
@@ -361,6 +404,7 @@ function InterviewBody() {
   const handleSubmitAnswer = async () => {
     if (!user || !current) return;
     unlockAudioAndSpeech();
+    playAudioCue("chime");
     stopListening();
     stopRecording();
     stopSpeaking();
@@ -474,10 +518,39 @@ function InterviewBody() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1.4fr]">
-          {/* LEFT: LIVE WEBCAM & AI INTERVIEWER */}
-          <div className="space-y-4">
-            {/* Clean Professional Webcam Video Feed */}
-            <Card className="overflow-hidden bg-slate-950 border border-border/80 shadow-md relative group rounded-xl">
+          {/* CANDIDATE WEBCAM & AI INTERVIEWER - order-2 on mobile so candidate sees question first */}
+          <div className="order-2 lg:order-1 space-y-4">
+            {/* Mobile Webcam Minimizer Bar (Visible only on screens < lg) */}
+            <div className="flex lg:hidden items-center justify-between p-2.5 px-3.5 rounded-xl border border-border bg-secondary/30">
+              <div className="flex items-center gap-2">
+                <span className={`size-2 rounded-full ${isCameraOn ? "bg-red-500 animate-pulse" : "bg-muted-foreground/50"}`} />
+                <span className="text-xs font-semibold text-foreground">Webcam Preview</span>
+                <Badge variant="outline" className="text-[10px]">
+                  {isCameraOn ? "Live" : "Off"}
+                </Badge>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={() => setIsCameraCollapsedMobile(!isCameraCollapsedMobile)}
+                className="text-xs h-7 gap-1 text-primary hover:text-primary/80"
+              >
+                {isCameraCollapsedMobile ? (
+                  <>
+                    Show Video <ChevronDown className="size-3.5" />
+                  </>
+                ) : (
+                  <>
+                    Minimize Video <ChevronUp className="size-3.5" />
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Video Feed (Collapsible on mobile) */}
+            <div className={isCameraCollapsedMobile ? "hidden lg:block" : "block"}>
+              <Card className="overflow-hidden bg-slate-950 border border-border/80 shadow-md relative group rounded-xl">
               <div className="relative aspect-video w-full flex items-center justify-center bg-slate-950">
                 {enableCamera && isCameraOn && !mediaError ? (
                   <video
@@ -547,6 +620,7 @@ function InterviewBody() {
                 </div>
               </div>
             </Card>
+            </div>
 
             {/* AI Interviewer Audio Card with Animated Equalizer Soundwave Visualizer */}
             <Card className="border-border/80 bg-card overflow-hidden relative shadow-sm">
@@ -645,8 +719,8 @@ function InterviewBody() {
 
           </div>
 
-          {/* RIGHT: QUESTION & VOICE-TO-TEXT ANSWER WITH SMOOTH TRANSITION */}
-          <div className="space-y-4">
+          {/* RIGHT: QUESTION & VOICE-TO-TEXT ANSWER WITH SMOOTH TRANSITION - order-1 on mobile so it is at top! */}
+          <div className="order-1 lg:order-2 space-y-4">
             <AnimatePresence mode="wait">
               <motion.div
                 key={current?.id || index}
@@ -657,19 +731,36 @@ function InterviewBody() {
               >
                 <Card className="border-border shadow-xs">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="font-medium">
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="secondary" className="font-medium text-xs">
                         {current.skill}
                       </Badge>
-                      <span className="text-xs text-muted-foreground font-mono">
-                        ID: {current.id}
-                      </span>
+                      
+                      {/* Prominent Direct Audio Playback Button directly on Question Card */}
+                      <Button
+                        type="button"
+                        variant={isSpeakingQuestion ? "destructive" : "outline"}
+                        size="sm"
+                        onClick={handleSpeakQuestion}
+                        className="h-8 gap-1.5 text-xs shadow-xs font-medium shrink-0"
+                        title="Tap to listen to AI Interviewer speak this question"
+                      >
+                        {isSpeakingQuestion ? (
+                          <>
+                            <VolumeX className="size-3.5" /> Stop Voice
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="size-3.5 text-primary" /> 🔊 Hear AI Voice
+                          </>
+                        )}
+                      </Button>
                     </div>
-                    <CardTitle className="mt-2 text-xl font-display leading-snug">
+                    <CardTitle className="mt-2 text-lg sm:text-xl font-display leading-snug text-foreground">
                       {current.text}
                     </CardTitle>
-                    <CardDescription>
-                      Speak your answer clearly using the microphone button, or type in the box below.
+                    <CardDescription className="text-xs">
+                      Tap the microphone button to speak your answer, or type in the response box below.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -1056,6 +1147,47 @@ function InterviewBody() {
                 onChange={(e) => setEnableCamera(e.target.checked)}
                 className="size-4 accent-primary rounded cursor-pointer"
               />
+            </div>
+
+            {/* AI Engine Status & 1-Click Verification Tool */}
+            <div className="rounded-lg border border-border/70 bg-card/60 p-3.5 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Bot className="size-4 text-primary" />
+                  <span className="font-semibold text-xs text-foreground">AI Placement Engine</span>
+                  <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+                    gemini-3.6-flash
+                  </Badge>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  onClick={handleTestAiConnection}
+                  disabled={testingAi}
+                  className="text-xs h-7 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  {testingAi ? <Loader2 className="size-3 animate-spin" /> : <Zap className="size-3" />}
+                  {testingAi ? "Verifying..." : "Test AI Connection"}
+                </Button>
+              </div>
+
+              {aiTestResult && (
+                <div
+                  className={`text-xs p-2.5 rounded-md flex items-center gap-2 ${
+                    aiTestResult.ok
+                      ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-medium"
+                      : "bg-destructive/10 border border-destructive/30 text-destructive"
+                  }`}
+                >
+                  {aiTestResult.ok ? (
+                    <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                  ) : (
+                    <CircleAlert className="size-4 shrink-0 text-destructive" />
+                  )}
+                  <span className="break-all">{aiTestResult.message}</span>
+                </div>
+              )}
             </div>
 
             <Button onClick={handleStart} disabled={busy} size="lg" className="w-full gap-2 font-semibold">

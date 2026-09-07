@@ -3,15 +3,13 @@ import { TECHNICAL_QUESTIONS, HR_QUESTIONS, MCQ_QUESTIONS } from "../data/questi
 
 const API_KEY_STORAGE = "hiresense:ai_api_key";
 const AI_MODEL_STORAGE = "hiresense:ai_model";
-export const PRIMARY_GEMINI_MODEL = "gemini-3.5-flash";
-export const FALLBACK_GEMINI_MODEL = "gemini-3.6-flash";
+export const PRIMARY_GEMINI_MODEL = "gemini-3.6-flash";
+export const FALLBACK_GEMINI_MODEL = "gemini-2.5-pro";
 export const SUPPORTED_MODELS = [
-  "gemini-3.5-flash",
   "gemini-3.6-flash",
+  "gemini-2.5-pro",
   "gemini-3.1-flash-lite",
   "gemini-flash-latest",
-  "gemini-3.7-flash",
-  "gemini-3.8-flash",
 ];
 
 export function getApiKey() {
@@ -40,6 +38,24 @@ export function getAiModel() {
     localStorage.removeItem(AI_MODEL_STORAGE);
   } catch { }
   return PRIMARY_GEMINI_MODEL;
+}
+
+export async function testGeminiConnection() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return { ok: false, error: "No Gemini API Key found in settings or environment." };
+  }
+  try {
+    const text = await callGeminiApi({
+      prompt: "Respond with valid JSON: {\"status\": \"ok\", \"message\": \"HireSense AI is operational\"}",
+      responseMimeType: "application/json",
+      temperature: 0.1,
+    });
+    const parsed = JSON.parse(text);
+    return { ok: true, model: getAiModel(), data: parsed };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
 }
 
 export function setAiModel(model) {
@@ -319,6 +335,59 @@ export function unlockAudioAndSpeech() {
     silentAudio.play().catch(() => {});
   } catch (e) {
     console.warn("Audio unlock notice:", e);
+  }
+}
+
+/**
+ * Plays synthesized Web Audio cues (chimes, mic beeps) with zero external network dependencies.
+ * Works seamlessly across mobile browsers and desktop without CORS or 404 risks.
+ */
+export function playAudioCue(type = "chime") {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    if (type === "chime" || type === "start") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(523.25, now); // C5
+      osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+      osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.12, now + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.36);
+    } else if (type === "mic_on") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.1, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } else if (type === "mic_off") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.08);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    }
+  } catch (e) {
+    // Ignore audio cue errors silently
   }
 }
 

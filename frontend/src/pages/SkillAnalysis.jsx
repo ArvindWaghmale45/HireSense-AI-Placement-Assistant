@@ -7,6 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import {
   BrainCircuit,
@@ -483,264 +490,303 @@ function SkillBody() {
       />
 
       {/* TOP: TARGET ROLE SELECTOR & READINESS ANALYSIS */}
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr]">
-        {/* LEFT: Role Selector List */}
-        <Card className="border-border flex flex-col h-full">
-          <CardHeader className="pb-3 border-b border-border/60">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2 font-display">
-                <Target className="size-4 text-primary" /> Target Roles ({ROLE_CATALOG.length})
-              </CardTitle>
-              <Badge variant="secondary" className="text-[10px]">
-                Market Aligned
-              </Badge>
-            </div>
-            <CardDescription className="text-xs">
-              Select a placement profile to analyze your competency coverage.
-            </CardDescription>
-
-            {/* Search Input */}
-            <div className="relative mt-2">
-              <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search job roles or skills…"
-                value={roleSearch}
-                onChange={(e) => setRoleSearch(e.target.value)}
-                className="pl-8 text-xs h-8"
-              />
-            </div>
-
-            {/* Category Filter Pills */}
-            <div className="flex gap-1 overflow-x-auto pt-2 pb-1 scrollbar-none">
-              {CATEGORY_TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setSelectedCategoryTab(tab)}
-                  className={`px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap transition-colors ${
-                    selectedCategoryTab === tab
-                      ? "bg-primary text-primary-foreground font-medium"
-                      : "bg-secondary/60 text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-2 space-y-1 overflow-y-auto max-h-[480px]">
-            {filteredRoles.map((role) => {
-              const reqs = role.requiredSkills;
-              const matches = reqs.filter((s) =>
-                currentSkills.some((cs) => cs.toLowerCase() === s.toLowerCase())
-              );
-              const pct = Math.round((matches.length / reqs.length) * 100);
-              const isSelected = selectedRoleId === role.id;
-
-              return (
-                <button
-                  key={role.id}
-                  onClick={() => setSelectedRoleId(role.id)}
-                  className={`w-full text-left p-2.5 rounded-lg text-xs transition-all border ${
-                    isSelected
-                      ? "bg-primary/10 border-primary text-foreground shadow-xs font-medium"
-                      : "border-transparent hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="font-semibold text-foreground truncate">{role.title}</span>
-                    <span
-                      className={`text-[10px] font-bold ${
-                        pct >= 75
-                          ? "text-emerald-500"
-                          : pct >= 50
-                          ? "text-amber-500"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {pct}% Match
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>{role.category}</span>
-                    <span>{role.package}</span>
-                  </div>
-
-                  <div className="mt-1.5 w-full bg-secondary rounded-full h-1 overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${
-                        pct >= 75 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-500" : "bg-primary"
-                      }`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </button>
-              );
-            })}
-
-            {filteredRoles.length === 0 && (
-              <div className="py-8 text-center text-xs text-muted-foreground">
-                No roles match your search filter.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* RIGHT: Detailed Readiness Breakdown */}
-        <Card className="border-border">
-          <CardHeader className="border-b border-border/60 pb-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <h3 className="font-display text-xl font-bold tracking-tight">{activeRole.title}</h3>
-                  <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">
-                    {activeRole.demand}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px]">
-                    {activeRole.experience}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-                  {activeRole.desc}
-                </p>
-              </div>
-
-              {/* Match Score Badge */}
-              <div className="text-right shrink-0 bg-secondary/30 border border-border/80 px-4 py-2 rounded-xl">
-                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
-                  Coverage
-                </div>
-                <div className="font-display text-3xl font-extrabold text-primary">
-                  {matchPercentage}%
-                </div>
-                <div className="text-[10px] text-muted-foreground">
-                  {matchedSkills.length} of {requiredSkills.length} Core Skills
-                </div>
-              </div>
-            </div>
-
-            {/* Progress Bar with Milestones */}
-            <div className="mt-4 space-y-1.5">
-              <div className="flex justify-between text-[11px] text-muted-foreground">
-                <span>Current Readiness Level</span>
-                <span className="font-semibold text-foreground">
-                  {matchPercentage >= 80
-                    ? "🎉 Placement Ready"
-                    : matchPercentage >= 50
-                    ? "⚡ Moderate Preparation Needed"
-                    : "🌱 Foundational Phase"}
-                </span>
-              </div>
-              <Progress value={matchPercentage} className="h-2.5" />
-            </div>
-
-            {/* Action Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground font-medium">Estimated CTC:</span>
-                <Badge variant="secondary" className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                  {activeRole.package}
+      <div className="space-y-4">
+        {/* MOBILE ONLY ROLE PICKER (screens < lg) */}
+        <div className="block lg:hidden">
+          <Card className="border-border">
+            <CardContent className="p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                  <Target className="size-3.5 text-primary" /> Target Role:
+                </label>
+                <Badge variant="secondary" className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                  {matchPercentage}% Match · {activeRole.package}
                 </Badge>
               </div>
-
-              <div className="flex items-center gap-2">
-                {missingSkills.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddAllMissing}
-                    className="text-xs h-8 gap-1.5"
-                  >
-                    <CheckCircle2 className="size-3.5 text-primary" /> Add Missing Skills ({missingSkills.length})
-                  </Button>
-                )}
-                <Button asChild size="sm" className="text-xs h-8 gap-1.5">
-                  <Link to="/interview">
-                    <Sparkles className="size-3.5" /> Practice Mock Interview →
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-5 space-y-6">
-            {/* Interactive Node-Based Competency Constellation Graph */}
-            <div className="rounded-xl border border-border/80 bg-secondary/20 p-4 relative overflow-hidden">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
-                  <Sparkles className="size-3.5 text-primary" /> Placement Competency Constellation & Roadmap
-                </span>
-                <span className="text-[10px] font-mono text-muted-foreground">4 Core Milestones</span>
-              </div>
-
-              {/* 4 Node Steps with Visual Status */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
-                {[
-                  {
-                    step: "01",
-                    title: "Languages & Core",
-                    desc: "Java / Python / OOP / DSA",
-                    skills: ["Java", "Python", "C++", "C", "Data Structures", "Algorithms", "OOP", "JavaScript", "TypeScript"],
-                  },
-                  {
-                    step: "02",
-                    title: "Frameworks & APIs",
-                    desc: "Spring Boot / React / REST",
-                    skills: ["Spring Boot", "Hibernate", "REST APIs", "Microservices", "React", "Node.js", "Express.js"],
-                  },
-                  {
-                    step: "03",
-                    title: "Data & Storage",
-                    desc: "SQL / DBMS / Redis / Mongo",
-                    skills: ["SQL", "DBMS", "MySQL", "PostgreSQL", "MongoDB", "Redis"],
-                  },
-                  {
-                    step: "04",
-                    title: "Cloud & Delivery",
-                    desc: "AWS / Docker / Git / CI-CD",
-                    skills: ["Git", "Docker", "AWS", "Kubernetes", "Linux", "CI/CD", "System Design"],
-                  },
-                ].map((node) => {
-                  const acquiredCount = node.skills.filter((s) =>
+              <select
+                value={selectedRoleId}
+                onChange={(e) => setSelectedRoleId(e.target.value)}
+                className="w-full h-10 rounded-lg border border-input bg-background px-3 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+              >
+                {ROLE_CATALOG.map((r) => {
+                  const reqs = r.requiredSkills;
+                  const matches = reqs.filter((s) =>
                     currentSkills.some((cs) => cs.toLowerCase() === s.toLowerCase())
-                  ).length;
-                  const isNodeActive = acquiredCount > 0;
-
+                  );
+                  const pct = Math.round((matches.length / reqs.length) * 100);
                   return (
-                    <div
-                      key={node.step}
-                      className={`p-3 rounded-xl border transition-all text-xs relative ${
-                        isNodeActive
-                          ? "bg-card border-primary/40 shadow-sm shadow-primary/10"
-                          : "bg-secondary/40 border-border/60 opacity-60"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                          isNodeActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                        }`}>
-                          STAGE {node.step}
-                        </span>
-                        {isNodeActive ? (
-                          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                        ) : (
-                          <span className="size-2 rounded-full bg-muted-foreground/40" />
-                        )}
-                      </div>
-                      <h5 className="font-semibold text-xs text-foreground truncate">{node.title}</h5>
-                      <p className="text-[10px] text-muted-foreground truncate">{node.desc}</p>
-                      <div className="mt-2 text-[10px] font-medium flex items-center justify-between text-muted-foreground">
-                        <span>{acquiredCount} active</span>
-                        <span className={isNodeActive ? "text-emerald-500 font-bold" : ""}>
-                          {isNodeActive ? "Illuminated" : "Locked"}
-                        </span>
-                      </div>
-                    </div>
+                    <option key={r.id} value={r.id}>
+                      {r.title} ({pct}% Match · {r.package})
+                    </option>
                   );
                 })}
+              </select>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr]">
+          {/* DESKTOP ONLY: Comprehensive Role Selector Sidebar */}
+          <Card className="border-border hidden lg:flex flex-col h-full">
+            <CardHeader className="pb-3 border-b border-border/60">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2 font-display">
+                  <Target className="size-4 text-primary" /> Target Roles ({ROLE_CATALOG.length})
+                </CardTitle>
+                <Badge variant="secondary" className="text-[10px]">
+                  Market Aligned
+                </Badge>
               </div>
-            </div>
+              <CardDescription className="text-xs">
+                Select a placement profile to analyze your competency coverage.
+              </CardDescription>
+
+              {/* Search Input */}
+              <div className="relative mt-2">
+                <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search job roles or skills…"
+                  value={roleSearch}
+                  onChange={(e) => setRoleSearch(e.target.value)}
+                  className="pl-8 text-xs h-8"
+                />
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="flex gap-1 overflow-x-auto pt-2 pb-1 scrollbar-none">
+                {CATEGORY_TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setSelectedCategoryTab(tab)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] whitespace-nowrap transition-colors ${
+                      selectedCategoryTab === tab
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : "bg-secondary/60 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-2 space-y-1 overflow-y-auto max-h-[480px]">
+              {filteredRoles.map((role) => {
+                const reqs = role.requiredSkills;
+                const matches = reqs.filter((s) =>
+                  currentSkills.some((cs) => cs.toLowerCase() === s.toLowerCase())
+                );
+                const pct = Math.round((matches.length / reqs.length) * 100);
+                const isSelected = selectedRoleId === role.id;
+
+                return (
+                  <button
+                    key={role.id}
+                    onClick={() => setSelectedRoleId(role.id)}
+                    className={`w-full text-left p-2.5 rounded-lg text-xs transition-all border ${
+                      isSelected
+                        ? "bg-primary/10 border-primary text-foreground shadow-xs font-medium"
+                        : "border-transparent hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="font-semibold text-foreground truncate">{role.title}</span>
+                      <span
+                        className={`text-[10px] font-bold ${
+                          pct >= 75
+                            ? "text-emerald-500"
+                            : pct >= 50
+                            ? "text-amber-500"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {pct}% Match
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>{role.category}</span>
+                      <span>{role.package}</span>
+                    </div>
+
+                    <div className="mt-1.5 w-full bg-secondary rounded-full h-1 overflow-hidden">
+                      <div
+                        className={`h-full transition-all ${
+                          pct >= 75 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-500" : "bg-primary"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+
+              {filteredRoles.length === 0 && (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  No roles match your search filter.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* RIGHT: Detailed Readiness Breakdown */}
+          <Card className="border-border min-w-0">
+            <CardHeader className="border-b border-border/60 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="font-display text-lg sm:text-xl font-bold tracking-tight text-foreground">{activeRole.title}</h3>
+                    <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                      {activeRole.demand}
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {activeRole.experience}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
+                    {activeRole.desc}
+                  </p>
+                </div>
+
+                {/* Match Score Badge */}
+                <div className="w-full sm:w-auto shrink-0 bg-secondary/30 border border-border/80 p-3 rounded-xl flex sm:flex-col items-center sm:items-end justify-between gap-1">
+                  <div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                      Coverage Score
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {matchedSkills.length} of {requiredSkills.length} Skills
+                    </div>
+                  </div>
+                  <div className="font-display text-2xl sm:text-3xl font-extrabold text-primary">
+                    {matchPercentage}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar with Milestones */}
+              <div className="mt-4 space-y-1.5">
+                <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <span>Current Readiness Level</span>
+                  <span className="font-semibold text-foreground">
+                    {matchPercentage >= 80
+                      ? "🎉 Placement Ready"
+                      : matchPercentage >= 50
+                      ? "⚡ Moderate Preparation"
+                      : "🌱 Foundational Phase"}
+                  </span>
+                </div>
+                <Progress value={matchPercentage} className="h-2.5" />
+              </div>
+
+              {/* Action Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-medium">Estimated CTC:</span>
+                  <Badge variant="secondary" className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                    {activeRole.package}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {missingSkills.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddAllMissing}
+                      className="text-xs h-8 gap-1.5 flex-1 sm:flex-none"
+                    >
+                      <CheckCircle2 className="size-3.5 text-primary" /> Add Missing ({missingSkills.length})
+                    </Button>
+                  )}
+                  <Button asChild size="sm" className="text-xs h-8 gap-1.5 flex-1 sm:flex-none">
+                    <Link to="/interview">
+                      <Sparkles className="size-3.5" /> Practice Mock Interview →
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-4 sm:p-5 space-y-6">
+              {/* Interactive Node-Based Competency Constellation Graph */}
+              <div className="rounded-xl border border-border/80 bg-secondary/20 p-3.5 sm:p-4 relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                    <Sparkles className="size-3.5 text-primary" /> Placement Competency Constellation & Roadmap
+                  </span>
+                  <span className="text-[10px] font-mono text-muted-foreground">4 Core Milestones</span>
+                </div>
+
+                {/* 4 Node Steps with Visual Status - Responsive on all screen sizes */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 relative z-10">
+                  {[
+                    {
+                      step: "01",
+                      title: "Languages & Core",
+                      desc: "Java / Python / OOP / DSA",
+                      skills: ["Java", "Python", "C++", "C", "Data Structures", "Algorithms", "OOP", "JavaScript", "TypeScript"],
+                    },
+                    {
+                      step: "02",
+                      title: "Frameworks & APIs",
+                      desc: "Spring Boot / React / REST",
+                      skills: ["Spring Boot", "Hibernate", "REST APIs", "Microservices", "React", "Node.js", "Express.js"],
+                    },
+                    {
+                      step: "03",
+                      title: "Data & Storage",
+                      desc: "SQL / DBMS / Redis / Mongo",
+                      skills: ["SQL", "DBMS", "MySQL", "PostgreSQL", "MongoDB", "Redis"],
+                    },
+                    {
+                      step: "04",
+                      title: "Cloud & Delivery",
+                      desc: "AWS / Docker / Git / CI-CD",
+                      skills: ["Git", "Docker", "AWS", "Kubernetes", "Linux", "CI/CD", "System Design"],
+                    },
+                  ].map((node) => {
+                    const acquiredCount = node.skills.filter((s) =>
+                      currentSkills.some((cs) => cs.toLowerCase() === s.toLowerCase())
+                    ).length;
+                    const isNodeActive = acquiredCount > 0;
+
+                    return (
+                      <div
+                        key={node.step}
+                        className={`p-3 rounded-xl border transition-all text-xs relative flex flex-col justify-between ${
+                          isNodeActive
+                            ? "bg-card border-primary/40 shadow-sm shadow-primary/10"
+                            : "bg-secondary/40 border-border/60 opacity-60"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              isNodeActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                            }`}>
+                              STAGE {node.step}
+                            </span>
+                            {isNodeActive ? (
+                              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                            ) : (
+                              <span className="size-2 rounded-full bg-muted-foreground/40" />
+                            )}
+                          </div>
+                          <h5 className="font-semibold text-xs text-foreground break-words">{node.title}</h5>
+                          <p className="text-[10px] text-muted-foreground break-words mt-0.5">{node.desc}</p>
+                        </div>
+                        <div className="mt-2.5 pt-2 border-t border-border/40 text-[10px] font-medium flex items-center justify-between text-muted-foreground">
+                          <span>{acquiredCount} active</span>
+                          <span className={isNodeActive ? "text-emerald-500 font-bold" : ""}>
+                            {isNodeActive ? "Illuminated" : "Locked"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
             {/* MANDATORY COMPETENCIES */}
             <div>
@@ -846,6 +892,7 @@ function SkillBody() {
           </CardContent>
         </Card>
       </div>
+    </div>
 
       {/* BOTTOM: COMPREHENSIVE CATEGORIZED SKILL LIBRARY */}
       <Card className="border-border">
