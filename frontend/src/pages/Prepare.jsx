@@ -26,10 +26,13 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import {
   CURATED_TESTS,
+  deleteSavedTest,
   getCuratedTestQuestions,
   getMcqs,
   listAttempts,
+  listSavedTests,
   saveAttempt,
+  saveGeneratedTest,
   shuffleArray,
 } from "@/lib/api/prep";
 import { generateAiAptitudeTest } from "@/lib/api/ai";
@@ -57,6 +60,7 @@ import {
   Loader2,
   TrendingUp,
   Check,
+  Trash2,
 } from "lucide-react";
 
 export default function Prepare() {
@@ -70,21 +74,36 @@ export default function Prepare() {
 function PrepareBody() {
   const { user } = useAuth();
   const [attempts, setAttempts] = useState([]);
+  const [savedTests, setSavedTests] = useState([]);
   const [activeTest, setActiveTest] = useState(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [catalogFilter, setCatalogFilter] = useState("all");
 
   useEffect(() => {
-    if (user) setAttempts(listAttempts(user.id));
+    if (user) {
+      setAttempts(listAttempts(user.id));
+      setSavedTests(listSavedTests(user.id));
+    }
   }, [user]);
 
   if (!user) return null;
 
-  const refreshAttempts = () => setAttempts(listAttempts(user.id));
+  const refreshData = () => {
+    setAttempts(listAttempts(user.id));
+    setSavedTests(listSavedTests(user.id));
+  };
 
-  // Starts a curated test with thoroughly shuffled questions
-  const startCuratedTest = (test) => {
-    const questions = getCuratedTestQuestions(test.id);
+  // Merged list of user saved AI tests + pre-configured curated tests
+  const allTests = useMemo(() => {
+    return [...savedTests, ...CURATED_TESTS];
+  }, [savedTests]);
+
+  // Starts any test (curated or AI-generated) with fresh shuffled questions
+  const startTest = (test) => {
+    const questions = test.isAiGenerated
+      ? shuffleArray(test.questions)
+      : getCuratedTestQuestions(test.id);
+
     if (!questions || questions.length === 0) {
       toast.error("No questions available for this test track.");
       return;
@@ -93,23 +112,35 @@ function PrepareBody() {
       id: test.id,
       title: test.title,
       category: test.category,
-      topicCategory: test.topicCategory,
+      topicCategory: test.topicCategory || "General",
       questions,
-      durationMins: test.durationMins,
-      isAiGenerated: false,
+      durationMins: test.durationMins || Math.ceil(questions.length * 1.5),
+      isAiGenerated: !!test.isAiGenerated,
     });
   };
 
-  // Handles launch of AI generated test
-  const handleAiTestGenerated = (testData) => {
-    setActiveTest(testData);
+  // Handles launch of AI generated test and adds to saved catalog state
+  const handleAiTestGenerated = (savedTestData) => {
+    setSavedTests((prev) => [savedTestData, ...prev.filter((t) => t.id !== savedTestData.id)]);
     setIsAiModalOpen(false);
+    toast.success("AI Test saved to All Tests catalog! Starting test...");
+    startTest(savedTestData);
   };
 
-  const filteredTests = CURATED_TESTS.filter((t) => {
-    if (catalogFilter === "all") return true;
-    return t.category === catalogFilter;
-  });
+  const handleDeleteSavedTest = (e, testId) => {
+    e.stopPropagation();
+    deleteSavedTest(testId);
+    setSavedTests((prev) => prev.filter((t) => t.id !== testId));
+    toast.success("AI Test removed from All Tests catalog.");
+  };
+
+  const filteredTests = useMemo(() => {
+    return allTests.filter((t) => {
+      if (catalogFilter === "all") return true;
+      if (catalogFilter === "ai") return !!t.isAiGenerated;
+      return t.category === catalogFilter;
+    });
+  }, [allTests, catalogFilter]);
 
   return (
     <div className="space-y-6">
@@ -135,17 +166,18 @@ function PrepareBody() {
         <ActiveTestPlayer
           test={activeTest}
           userId={user.id}
-          onExit={() => setActiveTest(null)}
-          onCompleted={refreshAttempts}
+          onExit={() => {
+            setActiveTest(null);
+            refreshData();
+          }}
+          onCompleted={refreshData}
           onRestartCurated={() => {
             if (activeTest.isAiGenerated) {
-              // Re-shuffle existing AI questions
               setActiveTest((prev) => ({
                 ...prev,
                 questions: shuffleArray(prev.questions),
               }));
             } else {
-              // Re-fetch curated with new shuffle
               const questions = getCuratedTestQuestions(activeTest.id);
               setActiveTest((prev) => ({
                 ...prev,
@@ -162,7 +194,7 @@ function PrepareBody() {
               value="tests"
               className="rounded-lg text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
-              <Target className="size-3.5 mr-1.5" /> Curated Test Catalog ({CURATED_TESTS.length})
+              <Target className="size-3.5 mr-1.5" /> All Tests ({allTests.length})
             </TabsTrigger>
             <TabsTrigger
               value="flashcards"
@@ -190,14 +222,14 @@ function PrepareBody() {
             <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-card border border-border/80 shadow-xs">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-muted-foreground">Filter Track:</span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <Button
                     size="sm"
                     variant={catalogFilter === "all" ? "default" : "outline"}
                     className="h-7 text-xs rounded-lg px-2.5"
                     onClick={() => setCatalogFilter("all")}
                   >
-                    All Tests
+                    All Tests ({allTests.length})
                   </Button>
                   <Button
                     size="sm"
@@ -205,7 +237,7 @@ function PrepareBody() {
                     className="h-7 text-xs rounded-lg px-2.5"
                     onClick={() => setCatalogFilter("aptitude")}
                   >
-                    Aptitude & Reasoning
+                    Aptitude & Reasoning ({allTests.filter((t) => t.category === "aptitude").length})
                   </Button>
                   <Button
                     size="sm"
@@ -213,7 +245,21 @@ function PrepareBody() {
                     className="h-7 text-xs rounded-lg px-2.5"
                     onClick={() => setCatalogFilter("technical")}
                   >
-                    Technical Core
+                    Technical Core ({allTests.filter((t) => t.category === "technical").length})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={catalogFilter === "ai" ? "default" : "outline"}
+                    className={cn(
+                      "h-7 text-xs rounded-lg px-2.5 gap-1.5",
+                      catalogFilter === "ai"
+                        ? "bg-gradient-to-r from-primary to-indigo-600 text-primary-foreground"
+                        : "border-primary/40 text-primary hover:bg-primary/10",
+                    )}
+                    onClick={() => setCatalogFilter("ai")}
+                  >
+                    <Sparkles className="size-3 text-amber-400" />
+                    AI Generated ({savedTests.length})
                   </Button>
                 </div>
               </div>
@@ -224,10 +270,27 @@ function PrepareBody() {
             </div>
 
             {/* Test Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredTests.map((test) => {
-                const IconComponent =
-                  test.category === "technical"
+            {filteredTests.length === 0 ? (
+              <Card className="border-dashed border-border/80 p-8 text-center bg-card/60">
+                <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
+                  <Sparkles className="size-6 text-amber-400" />
+                </div>
+                <h3 className="text-base font-semibold mb-1">No Tests in this Category Yet</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto mb-4">
+                  {catalogFilter === "ai"
+                    ? "You haven't generated any custom AI tests yet. Click below to synthesize your first placement test!"
+                    : "No placement tests found matching your selected filter."}
+                </p>
+                <Button onClick={() => setIsAiModalOpen(true)} className="gap-2 text-xs">
+                  <Sparkles className="size-3.5" /> Generate AI Test Now
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredTests.map((test) => {
+                  const IconComponent = test.isAiGenerated
+                    ? BrainCircuit
+                    : test.category === "technical"
                     ? test.id.includes("java")
                       ? Code2
                       : Database
@@ -237,113 +300,159 @@ function PrepareBody() {
                     ? BrainCircuit
                     : BookOpen;
 
-                return (
-                  <motion.div
-                    key={test.id}
-                    whileHover={{ y: -3 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Card className="h-full flex flex-col justify-between border-border/80 hover:border-primary/50 transition-all shadow-xs hover:shadow-md bg-card/90">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <Badge
-                            variant="secondary"
-                            className="font-mono text-[10px] uppercase tracking-wider"
-                          >
-                            {test.topicCategory}
-                          </Badge>
-                          <Badge
-                            variant="outline"
+                  return (
+                    <motion.div
+                      key={test.id}
+                      whileHover={{ y: -3 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Card
+                        className={cn(
+                          "h-full flex flex-col justify-between transition-all shadow-xs hover:shadow-md bg-card/90",
+                          test.isAiGenerated
+                            ? "border-primary/40 bg-gradient-to-br from-card via-card to-primary/5 hover:border-primary/70"
+                            : "border-border/80 hover:border-primary/50",
+                        )}
+                      >
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-1.5">
+                              {test.isAiGenerated ? (
+                                <Badge className="bg-primary/20 text-primary border-primary/30 font-mono text-[10px] flex items-center gap-1">
+                                  <Sparkles className="size-2.5 text-amber-400" /> AI GENERATED
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="secondary"
+                                  className="font-mono text-[10px] uppercase tracking-wider"
+                                >
+                                  {test.topicCategory}
+                                </Badge>
+                              )}
+                              {test.createdAt && (
+                                <span className="text-[10px] text-muted-foreground font-mono">
+                                  {new Date(test.createdAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px] font-mono",
+                                  test.difficulty?.toLowerCase() === "easy" && "border-emerald-500/40 text-emerald-500",
+                                  test.difficulty?.toLowerCase() === "medium" && "border-amber-500/40 text-amber-500",
+                                  test.difficulty?.toLowerCase() === "hard" && "border-rose-500/40 text-rose-500",
+                                )}
+                              >
+                                {test.difficulty}
+                              </Badge>
+                              {test.isAiGenerated && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={(e) => handleDeleteSavedTest(e, test.id)}
+                                  title="Delete saved test"
+                                  className="size-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={cn(
+                                "p-2.5 rounded-xl shrink-0 mt-0.5",
+                                test.isAiGenerated ? "bg-primary/20 text-primary" : "bg-primary/10 text-primary",
+                              )}
+                            >
+                              <IconComponent className="size-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <CardTitle className="text-base font-semibold leading-tight line-clamp-1">
+                                {test.title}
+                              </CardTitle>
+                              <span className="text-[11px] text-primary/80 font-medium block mt-0.5 line-clamp-1">
+                                {test.badge || test.topicCategory}
+                              </span>
+                            </div>
+                          </div>
+                          <CardDescription className="text-xs line-clamp-2 mt-2">
+                            {test.description}
+                          </CardDescription>
+                        </CardHeader>
+
+                        <CardContent className="pt-0 space-y-3">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+                            <span className="flex items-center gap-1">
+                              <Layers className="size-3.5 text-primary" /> {test.count || test.questions?.length} Questions
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="size-3.5 text-muted-foreground" /> ~{test.durationMins} mins
+                            </span>
+                          </div>
+
+                          <Button
+                            onClick={() => startTest(test)}
                             className={cn(
-                              "text-[10px] font-mono",
-                              test.difficulty === "Easy" && "border-emerald-500/40 text-emerald-500",
-                              test.difficulty === "Medium" && "border-amber-500/40 text-amber-500",
-                              test.difficulty === "Hard" && "border-rose-500/40 text-rose-500",
+                              "w-full gap-2 font-semibold shadow-xs",
+                              test.isAiGenerated && "bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 text-primary-foreground",
                             )}
                           >
-                            {test.difficulty}
+                            <Play className="size-3.5 fill-current" /> Start Test
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+
+                {/* Special AI Generator Card in Grid (when on 'all' or 'ai') */}
+                {(catalogFilter === "all" || catalogFilter === "ai") && (
+                  <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
+                    <Card className="h-full flex flex-col justify-between border-dashed border-primary/50 bg-gradient-to-br from-primary/5 via-card to-indigo-500/10 hover:border-primary transition-all shadow-xs hover:shadow-md">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <Badge className="bg-primary/20 text-primary border-primary/30 font-mono text-[10px]">
+                            AI ENGINE
                           </Badge>
+                          <Sparkles className="size-4 text-amber-400 animate-spin" style={{ animationDuration: "6s" }} />
                         </div>
                         <div className="flex items-start gap-3">
-                          <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0 mt-0.5">
-                            <IconComponent className="size-5" />
+                          <div className="p-2.5 rounded-xl bg-primary/15 text-primary shrink-0 mt-0.5">
+                            <BrainCircuit className="size-5" />
                           </div>
                           <div>
                             <CardTitle className="text-base font-semibold leading-tight">
-                              {test.title}
+                              Generate Custom AI Test
                             </CardTitle>
-                            <span className="text-[11px] text-primary/80 font-medium block mt-0.5">
-                              {test.badge}
+                            <span className="text-[11px] text-primary font-medium block mt-0.5">
+                              On-Demand Synthesis
                             </span>
                           </div>
                         </div>
-                        <CardDescription className="text-xs line-clamp-2 mt-2">
-                          {test.description}
+                        <CardDescription className="text-xs mt-2">
+                          Need questions on specific topics or company patterns? Generate a fresh test saved directly to this list.
                         </CardDescription>
                       </CardHeader>
 
-                      <CardContent className="pt-0 space-y-3">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
-                          <span className="flex items-center gap-1">
-                            <Layers className="size-3.5 text-primary" /> {test.count} Questions
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="size-3.5 text-muted-foreground" /> ~{test.durationMins} mins
-                          </span>
-                        </div>
-
+                      <CardContent className="pt-0">
                         <Button
-                          onClick={() => startCuratedTest(test)}
-                          className="w-full gap-2 font-semibold shadow-xs"
+                          onClick={() => setIsAiModalOpen(true)}
+                          variant="outline"
+                          className="w-full gap-2 border-primary/40 hover:bg-primary hover:text-primary-foreground font-semibold shadow-xs"
                         >
-                          <Play className="size-3.5 fill-current" /> Start Test
+                          <Sparkles className="size-3.5" /> Configure & Generate
                         </Button>
                       </CardContent>
                     </Card>
                   </motion.div>
-                );
-              })}
-
-              {/* Special AI Generator Card in Grid */}
-              <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }}>
-                <Card className="h-full flex flex-col justify-between border-dashed border-primary/50 bg-gradient-to-br from-primary/5 via-card to-indigo-500/10 hover:border-primary transition-all shadow-xs hover:shadow-md">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <Badge className="bg-primary/20 text-primary border-primary/30 font-mono text-[10px]">
-                        AI ENGINE
-                      </Badge>
-                      <Sparkles className="size-4 text-amber-400 animate-spin" style={{ animationDuration: "6s" }} />
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="p-2.5 rounded-xl bg-primary/15 text-primary shrink-0 mt-0.5">
-                        <BrainCircuit className="size-5" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base font-semibold leading-tight">
-                          Generate Custom AI Test
-                        </CardTitle>
-                        <span className="text-[11px] text-primary font-medium block mt-0.5">
-                          On-Demand Synthesis
-                        </span>
-                      </div>
-                    </div>
-                    <CardDescription className="text-xs mt-2">
-                      Need questions on specific topics or company patterns? Let Gemini AI generate a fresh test tailored to you.
-                    </CardDescription>
-                  </CardHeader>
-
-                  <CardContent className="pt-0">
-                    <Button
-                      onClick={() => setIsAiModalOpen(true)}
-                      variant="outline"
-                      className="w-full gap-2 border-primary/40 hover:bg-primary hover:text-primary-foreground font-semibold shadow-xs"
-                    >
-                      <Sparkles className="size-3.5" /> Configure & Generate
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
+                )}
+              </div>
+            )}
           </TabsContent>
 
           {/* Flashcard Practice Tab */}
@@ -405,6 +514,7 @@ function PrepareBody() {
         open={isAiModalOpen}
         onOpenChange={setIsAiModalOpen}
         onGenerated={handleAiTestGenerated}
+        userId={user.id}
       />
     </div>
   );
@@ -793,8 +903,9 @@ function ActiveTestPlayer({
 /**
  * AI Test Generator Modal
  * Lets candidate choose category, topic, difficulty, question count, and target company pattern.
+ * Saves generated tests directly to the "All Tests" catalog for persistent practice.
  */
-function AiTestGeneratorModal({ open, onOpenChange, onGenerated }) {
+function AiTestGeneratorModal({ open, onOpenChange, onGenerated, userId }) {
   const [category, setCategory] = useState("aptitude");
   const [topic, setTopic] = useState("Time & Work, Speed, Probability");
   const [difficulty, setDifficulty] = useState("MEDIUM");
@@ -830,16 +941,22 @@ function AiTestGeneratorModal({ open, onOpenChange, onGenerated }) {
         return;
       }
 
-      toast.success(`Generated ${questions.length} AI questions ready for practice!`);
-      onGenerated({
+      const savedTest = await saveGeneratedTest({
         id: `ai-${Date.now()}`,
         title: `${companyTarget ? companyTarget + " " : ""}${topic || "AI Generated"} Test`,
         category,
-        topicCategory: "AI Synthesis",
-        questions: shuffleArray(questions),
+        topicCategory: companyTarget ? companyTarget : "AI Synthesis",
+        companyTarget,
+        badge: companyTarget ? `${companyTarget} Pattern` : "AI Synthesis",
+        description: `Custom ${difficulty.toLowerCase()} assessment on ${topic || "Campus Placement"}${companyTarget ? ` adhering to ${companyTarget} hiring patterns` : ""}.`,
+        difficulty: difficulty.charAt(0) + difficulty.slice(1).toLowerCase(),
+        count: questions.length,
         durationMins: Math.ceil(questions.length * 1.5),
-        isAiGenerated: true,
+        questions,
+        userId,
       });
+
+      onGenerated(savedTest);
     } catch (err) {
       console.error(err);
       toast.error("Failed to generate test. Using local shuffled fallback.");

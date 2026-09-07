@@ -153,3 +153,43 @@ export async function saveAttempt(input) {
 export function listAttempts(userId) {
   return readStore(ATTEMPTS_KEY, []).filter((item) => item.userId === userId);
 }
+
+const SAVED_TESTS_KEY = "prep-saved-tests";
+
+/**
+ * Persists an AI-generated or custom test so it permanently appears in "All Tests"
+ */
+export async function saveGeneratedTest(testData) {
+  await delay(150);
+  const savedTest = {
+    ...testData,
+    id: testData.id || uid("ai_test"),
+    createdAt: testData.createdAt || new Date().toISOString(),
+    isAiGenerated: true,
+  };
+  const current = readStore(SAVED_TESTS_KEY, []);
+  // Avoid duplicate if re-saving same id
+  const filtered = current.filter((t) => t.id !== savedTest.id);
+  writeStore(SAVED_TESTS_KEY, [savedTest, ...filtered]);
+  return savedTest;
+}
+
+/**
+ * Lists all user-generated/saved AI tests
+ */
+export function listSavedTests(userId) {
+  const all = readStore(SAVED_TESTS_KEY, []);
+  if (!userId) return all;
+  return all.filter((t) => !t.userId || t.userId === userId);
+}
+
+/**
+ * Deletes a user-generated test from the catalog
+ */
+export function deleteSavedTest(testId) {
+  const current = readStore(SAVED_TESTS_KEY, []);
+  const updated = current.filter((t) => t.id !== testId);
+  writeStore(SAVED_TESTS_KEY, updated);
+  return updated;
+}
+
