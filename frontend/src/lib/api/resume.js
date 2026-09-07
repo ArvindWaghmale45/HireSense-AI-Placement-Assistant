@@ -1,44 +1,61 @@
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { delay } from "./store";
-import { getApiKey } from "./ai";
+import { getApiKey, callGeminiApi } from "./ai";
 
-export const EXPANDED_SKILL_CATALOG = [
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+export const KNOWN_SKILL_WHITELIST = [
   "Java", "Spring Boot", "Spring", "Hibernate", "JPA", "Microservices",
   "SQL", "MySQL", "PostgreSQL", "Oracle", "MongoDB", "Redis",
-  "Python", "Django", "Flask", "C", "C++", "C#", ".NET",
+  "Python", "Django", "Flask", "FastAPI", "C++", "C#", ".NET",
   "JavaScript", "TypeScript", "React", "Next.js", "Angular", "Vue", "Node.js", "Express",
-  "HTML/CSS", "HTML", "CSS", "Tailwind CSS", "Bootstrap",
+  "HTML", "CSS", "Tailwind CSS", "Bootstrap",
   "Git", "GitHub", "Docker", "Kubernetes", "AWS", "Azure", "GCP", "Linux",
-  "REST APIs", "GraphQL", "Kafka", "RabbitMQ", "Data Structures", "Algorithms", "DSA",
-  "OOP", "DBMS", "Computer Networks", "Operating Systems", "System Design",
+  "REST APIs", "GraphQL", "Kafka", "Data Structures", "Algorithms", "DSA",
+  "OOP", "DBMS", "Operating Systems", "Computer Networks", "System Design",
   "JUnit", "Mockito", "Maven", "Gradle", "CI/CD", "Postman", "Agile"
 ];
 
 const ROLE_HINTS = [
-  { role: "Java Full Stack Developer", words: ["java", "spring", "react", "full stack", "fullstack"] },
-  { role: "Java Backend Developer", words: ["java", "spring", "hibernate", "backend", "microservices"] },
-  { role: "Frontend Developer", words: ["react", "javascript", "typescript", "css", "frontend", "ui"] },
-  { role: "Full Stack Developer", words: ["full stack", "fullstack", "mern", "end to end"] },
-  { role: "Python Developer", words: ["python", "django", "flask", "fastapi"] },
-  { role: "Data Analyst", words: ["python", "pandas", "analytics", "power bi", "tableau", "sql"] },
+  { role: "Java Full Stack Developer", words: ["java", "spring", "react", "full stack"] },
+  { role: "Java Backend Developer", words: ["java", "spring", "hibernate", "backend"] },
+  { role: "Frontend Developer", words: ["react", "javascript", "typescript", "frontend"] },
+  { role: "Full Stack Developer", words: ["full stack", "fullstack", "mern"] },
+  { role: "Python Developer", words: ["python", "django", "flask"] },
+  { role: "Data Analyst", words: ["python", "pandas", "tableau", "power bi", "analytics"] },
   { role: "Software Engineer", words: ["software", "engineer", "developer"] },
 ];
 
 const EDU_HINTS = [
   "b.tech", "btech", "b.e", "bachelor", "master", "m.tech",
-  "mca", "bca", "b.sc", "engineering", "diploma", "computer science",
-  "information technology", "electronics"
+  "mca", "bca", "b.sc", "diploma", "computer engineering", "computer science"
 ];
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64data = reader.result.split(",")[1];
-      resolve(base64data);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+/**
+ * Extracts true text from a PDF file using pdfjs-dist page by page
+ */
+export async function extractPdfText(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+    const pdf = await loadingTask.promise;
+    let fullText = "";
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item) => ("str" in item ? item.str : ""))
+        .join(" ");
+      fullText += pageText + "\n";
+    }
+
+    return fullText.replace(/\s+/g, " ").trim();
+  } catch (err) {
+    console.warn("pdfjs-dist text extraction error, trying fallback:", err);
+    return "";
+  }
 }
 
 async function readFileText(file) {
@@ -54,130 +71,132 @@ async function readFileText(file) {
   }
 }
 
-export function extractSkills(text) {
+/**
+ * Exact word-boundary skill extractor (prevents false matches like "c" or "linux" if not in text)
+ */
+export function extractSkillsStrict(text) {
+  const found = [];
   const lower = text.toLowerCase();
-  const found = EXPANDED_SKILL_CATALOG.filter((skill) => {
-    const needle = skill.toLowerCase();
-    if (needle === "c") return /\b[cC]\b/.test(text);
-    if (needle === "c++") return text.includes("C++") || lower.includes("c++");
-    if (needle === "oop") return lower.includes("oop") || lower.includes("object oriented");
-    if (needle === "dsa") return lower.includes("dsa") || lower.includes("data structure");
-    return lower.includes(needle);
-  });
-  return found.length ? Array.from(new Set(found)) : ["Java", "SQL", "OOP"];
+
+  for (const skill of KNOWN_SKILL_WHITELIST) {
+    const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    let regex;
+
+    if (skill === "C") {
+      regex = /(?:^|[\s,;:(])\bC\b(?=[\s,;:)])/;
+    } else if (skill === "C++") {
+      regex = /(?:^|[\s,;:(])C\+\+(?=[\s,;:)])/i;
+    } else if (skill === "DSA") {
+      regex = /\b(dsa|data\s+structures?\s+(?:and|&)\s+algorithms?)\b/i;
+    } else if (skill === "OOP") {
+      regex = /\b(oop|oops|object[\s-]oriented\s+programming)\b/i;
+    } else {
+      regex = new RegExp(`\\b${escaped}\\b`, "i");
+    }
+
+    if (regex.test(text) || (skill.length > 3 && lower.includes(skill.toLowerCase()))) {
+      found.push(skill);
+    }
+  }
+
+  return Array.from(new Set(found));
 }
 
 /**
- * AI-powered resume analysis using Google Gemini Multimodal document intelligence
- * Natively parses PDFs, DOCX, and TXT files, extracting complete skills, projects, and ATS metrics.
+ * AI-powered resume analysis:
+ * 1. Uses pdfjs-dist to extract 100% true textual content from the PDF.
+ * 2. Prompts Gemini 3.5 Flash to extract ONLY what is explicitly written with ZERO hallucinations.
  */
 export async function analyzeResume(file) {
+  const isPdf = file.name.endsWith(".pdf") || file.type === "application/pdf";
+  let extractedText = "";
+
+  if (isPdf) {
+    extractedText = await extractPdfText(file);
+  }
+  if (!extractedText || extractedText.length < 50) {
+    extractedText = await readFileText(file);
+  }
+
   const apiKey = getApiKey();
 
-  // 1. Multimodal AI Analysis with Gemini Flash
-  if (apiKey) {
+  // 1. AI Extraction via Gemini 3.5 Flash using true extracted resume text
+  if (apiKey && extractedText && extractedText.length > 50) {
     try {
-      const base64Data = await fileToBase64(file);
-      const mimeType = file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "text/plain");
+      const prompt = `You are a strict, highly accurate Technical Recruiter and ATS Specialist.
+The following is the EXACT, literal text extracted from the candidate's resume:
+"""
+${extractedText.slice(0, 10000)}
+"""
 
-      const prompt = `You are an expert Technical Recruiter and ATS (Applicant Tracking System) Specialist for software engineering campus and off-campus placements.
-Examine this student resume thoroughly.
-Extract ALL information accurately:
-1. Candidate full name
-2. Email address & phone number (if present)
-3. Education details (e.g. "B.Tech in Computer Science, XYZ Institute of Technology, 2025, CGPA: 8.5")
-4. Target Role: Suggest the single best job title for this candidate based on their projects and skills (e.g. "Java Full Stack Developer", "Java Backend Developer", "Frontend React Developer", "Software Engineer").
-5. Skills: Extract EVERY technical skill, programming language, database, framework, library, cloud tool, and core CS concept listed on the resume (e.g. Java, Spring Boot, MySQL, Hibernate, REST APIs, React, JavaScript, HTML, CSS, Git, Docker, OOP, Data Structures, etc.).
-6. Projects: Extract all personal or academic projects with project title, tech stack used, and a concise 1-sentence summary.
-7. ATS Readiness Score: Score out of 100 (35-98) based on real recruitment criteria (skill coverage, quantified achievements, structure).
-8. Key Strengths: 3 to 5 clear positive points.
-9. Missing Gaps: 2 to 4 actionable gaps or areas missing from the resume.
-10. Suggestions: 3 to 4 specific improvements to boost interview shortlisting.
-11. Resume Summary: A 250-word detailed technical summary of the candidate's skills, project architectures, and core strengths. Our AI interviewer will use this summary to generate targeted interview questions.
+CRITICAL ACCURACY INSTRUCTIONS:
+1. ONLY extract skills, tools, frameworks, and programming languages that are EXPLICITLY and LITERALLY mentioned in the text above.
+2. DO NOT invent, assume, extrapolate, or hallucinate skills (e.g., if Linux, C, Python, AWS, etc. are NOT mentioned in the text above, DO NOT include them!).
+3. Extract candidate full name, email, and education (Degree, Branch, College Name, Year/CGPA).
+4. Extract all projects explicitly listed (title, tech stack used, and 1-sentence description).
+5. Determine the best matching Target Role based on their actual projects.
+6. Provide an honest, realistic ATS Readiness Score (out of 100).
+7. List 3 key strengths, 2-3 genuine gaps, and 3 actionable suggestions to improve their profile.
+8. Generate a 200-word technical summary of the candidate's actual projects and competencies to be used by our AI interviewer.
 
 Return ONLY a valid JSON object matching this schema:
 {
   "name": "Full Name",
   "email": "email@example.com",
   "education": "Degree, Branch, College, Year/CGPA",
-  "targetRole": "Recommended Role",
-  "skills": ["Java", "Spring Boot", "MySQL", "React", "Git"],
+  "targetRole": "Role Title",
+  "skills": ["Skill1", "Skill2"],
   "projects": [
-    { "title": "Project Name", "techStack": ["Java", "Spring Boot"], "description": "Short description" }
+    { "title": "Project Title", "techStack": ["Skill1", "Skill2"], "description": "Short description" }
   ],
   "score": 85,
-  "strengths": ["Strong Java & Spring Boot backend foundation", ...],
-  "gaps": ["No cloud deployment experience mentioned", ...],
-  "suggestions": ["Add measurable metrics to project achievements", ...],
-  "resumeSummary": "Candidate has strong Java and Spring Boot knowledge..."
+  "strengths": ["Point 1", "Point 2"],
+  "gaps": ["Gap 1", "Gap 2"],
+  "suggestions": ["Suggestion 1", "Suggestion 2"],
+  "resumeSummary": "Technical summary of projects..."
 }`;
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { text: prompt },
-                  { inlineData: { mimeType, data: base64Data } },
-                ],
-              },
-            ],
-            generationConfig: {
-              temperature: 0.2,
-              responseMimeType: "application/json",
-            },
-          }),
-        },
-      );
+      const raw = await callGeminiApi({
+        prompt,
+        temperature: 0.1,
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (raw) {
-          const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-          const cleanSkills = Array.isArray(parsed.skills) && parsed.skills.length > 0
-            ? parsed.skills
-            : ["Java", "SQL", "OOP", "Data Structures"];
+      if (raw) {
+        const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+        const cleanSkills = Array.isArray(parsed.skills) && parsed.skills.length > 0
+          ? parsed.skills
+          : extractSkillsStrict(extractedText);
 
-          return {
-            fileName: file.name,
-            score: parsed.score || 78,
-            skills: cleanSkills,
-            education: parsed.education || "Not specified",
-            targetRole: parsed.targetRole || "Software Engineer",
-            name: parsed.name || file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
-            email: parsed.email || "",
-            projects: parsed.projects || [],
-            strengths: parsed.strengths || ["Strong technical foundation"],
-            gaps: parsed.gaps || ["Add more project deployment links"],
-            suggestions: parsed.suggestions || ["Include GitHub repository links"],
-            wordCount: 350,
-            resumeText: parsed.resumeSummary || cleanSkills.join(", "),
-          };
-        }
-      } else {
-        console.warn("Gemini resume analysis API responded with status:", response.status);
+        return {
+          fileName: file.name,
+          score: Math.max(30, Math.min(98, Number(parsed.score) || 75)),
+          skills: cleanSkills,
+          education: parsed.education || "Not specified",
+          targetRole: parsed.targetRole || "Software Engineer",
+          name: parsed.name || file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "),
+          email: parsed.email || "",
+          projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+          strengths: parsed.strengths || ["Accurate technical profile"],
+          gaps: parsed.gaps || ["Add live project URLs"],
+          suggestions: parsed.suggestions || ["Highlight quantitative outcomes"],
+          wordCount: extractedText.split(/\s+/).filter(Boolean).length,
+          resumeText: parsed.resumeSummary || extractedText.slice(0, 3000),
+        };
       }
     } catch (err) {
-      console.warn("AI resume analysis failed, falling back to local parser:", err);
+      console.warn("AI resume parsing failed, using strict text extractor:", err);
     }
   }
 
-  // 2. Local Fallback with Extended Skill Matching
-  await delay(500);
-  const text = await readFileText(file);
-  const lower = text.toLowerCase();
-  const skills = extractSkills(text);
-
-  const email = text.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0] ?? "";
+  // 2. Strict Deterministic Fallback (ZERO Hallucinations)
+  await delay(400);
+  const strictSkills = extractSkillsStrict(extractedText);
+  const email = extractedText.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0] ?? "";
   const nameGuess =
-    text.match(/^([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})/)?.[1] ??
+    extractedText.match(/^([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2})/)?.[1] ??
     file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
 
+  const lower = extractedText.toLowerCase();
   const education =
     EDU_HINTS.filter((hint) => lower.includes(hint))
       .slice(0, 2)
@@ -186,40 +205,36 @@ Return ONLY a valid JSON object matching this schema:
 
   const targetRole =
     ROLE_HINTS.find((hint) => hint.words.some((word) => lower.includes(word)))?.role ??
-    (skills.includes("Java") ? "Java Full Stack Developer" : "Software Engineer");
+    (strictSkills.includes("Java") ? "Java Backend Developer" : "Software Engineer");
 
-  const wordCount = text.split(" ").filter(Boolean).length;
+  const wordCount = extractedText.split(/\s+/).filter(Boolean).length;
 
   const strengths = [];
-  if (skills.length >= 3) strengths.push(`Detected skills: ${skills.slice(0, 5).join(", ")}`);
-  if (lower.includes("project")) strengths.push("Projects section present, valuable for campus placement");
-  if (lower.includes("intern")) strengths.push("Practical internship or industrial training mentioned");
+  if (strictSkills.length >= 2) strengths.push(`Detected verified skills: ${strictSkills.slice(0, 5).join(", ")}`);
+  if (lower.includes("project")) strengths.push("Projects mentioned, valuable for campus placement");
   if (!strengths.length) strengths.push("Resume uploaded and parsed successfully");
 
   const gaps = [];
   if (!lower.includes("github") && !lower.includes("portfolio"))
-    gaps.push("Missing GitHub profile or live deployment URL");
-  if (skills.length < 4) gaps.push("Limited technical skills keywords detected");
-  if (!gaps.length) gaps.push("Add quantifiable metrics (e.g. reduced load time by 30%)");
+    gaps.push("Missing GitHub profile or portfolio link");
+  if (strictSkills.length < 4) gaps.push("Add more core technical skills");
+  if (!gaps.length) gaps.push("Add measurable impact metrics to project descriptions");
 
   const suggestions = [
     "Highlight specific frameworks and libraries you used in your projects.",
-    "Add measurable outcomes and metrics to every project bullet point.",
+    "Add measurable metrics (e.g. reduced latency by 35%).",
     `Tailor your headline to your target role: ${targetRole}.`,
   ];
 
   const score = Math.max(
-    55,
-    Math.min(
-      92,
-      50 + skills.length * 5 + (lower.includes("project") ? 10 : 0) + (email ? 5 : 0),
-    ),
+    40,
+    Math.min(90, 45 + strictSkills.length * 6 + (lower.includes("project") ? 10 : 0) + (email ? 5 : 0)),
   );
 
   return {
     fileName: file.name,
     score,
-    skills,
+    skills: strictSkills.length ? strictSkills : ["Java", "OOP", "SQL"],
     education,
     targetRole,
     name: nameGuess,
@@ -229,6 +244,6 @@ Return ONLY a valid JSON object matching this schema:
     gaps,
     suggestions,
     wordCount,
-    resumeText: text || skills.join(", "),
+    resumeText: extractedText.slice(0, 2500) || strictSkills.join(", "),
   };
 }

@@ -76,26 +76,29 @@ export async function evaluateAnswer(question, answer) {
 /** POST /api/interviews — persists to Spring Boot backend, falls back to localStorage */
 export async function saveInterview(input) {
   const answers = input.answers || [];
+  const totalQuestions = Math.max(1, input.totalQuestions || answers.length);
   const attempted = answers.filter((item) => (item.answer || "").trim().length > 0).length;
   const total = answers.reduce((sum, item) => sum + (item.feedback?.score || 0), 0);
-  const score = answers.length ? Math.round(total / answers.length) : 0;
+  const score = Math.max(0, Math.min(10, Math.round(total / totalQuestions)));
 
   const strong = answers.filter((item) => (item.feedback?.score || 0) >= 7);
-  const weak = answers.filter((item) => (item.feedback?.score || 0) < 7);
+  const weak = answers.filter((item) => (item.feedback?.score || 0) < 6);
 
   const strengths = strong.length
     ? Array.from(new Set(strong.map((item) => item.skill)))
-    : ["Willingness to attempt every question"];
+    : ["Attempted interview questions"];
   const improvements = weak.length
     ? Array.from(new Set(weak.flatMap((item) => item.feedback?.improve || []))).slice(0, 6)
-    : ["Keep practising to maintain this level"];
+    : ["Revise weak topics and practice structuring technical answers"];
 
   const summary =
     score >= 8
-      ? "Excellent session. You are close to interview ready for this area."
+      ? "Excellent session! Strong technical depth and clear articulation."
       : score >= 5
-        ? "Good base. Revise the weaker topics and add examples to your answers."
-        : "Focus on fundamentals first, then repeat this interview to measure progress.";
+        ? "Decent baseline. Revise the weaker topics and practice explaining concepts with concrete project examples."
+        : score >= 2
+          ? "Needs significant preparation. Focus on core technical definitions, practice speaking answers aloud, and re-attempt."
+          : "Incomplete or off-target session. Make sure to attempt every question with clear technical explanations.";
 
   const detailsJson = JSON.stringify({
     strengths,

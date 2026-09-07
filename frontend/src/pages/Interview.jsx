@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -15,23 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchUserInterviews, listInterviews, saveInterview } from "@/lib/api/interviews";
 import { useMediaStream } from "@/hooks/useMediaStream";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import {
-  getApiKey,
-  setApiKey,
   generateAiQuestions,
   evaluateAiAnswer,
   transcribeSpokenAudio,
@@ -51,7 +39,6 @@ import {
   CheckCircle2,
   CircleAlert,
   Loader2,
-  Key,
   RotateCcw,
   BookOpen,
   Activity,
@@ -72,10 +59,6 @@ function InterviewBody() {
   const [difficulty, setDifficulty] = useState("MEDIUM");
   const [count, setCount] = useState(5);
   const [enableCamera, setEnableCamera] = useState(true);
-
-  // AI settings
-  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(getApiKey());
 
   // Interview state
   const [questions, setQuestions] = useState([]);
@@ -172,12 +155,6 @@ function InterviewBody() {
 
   const current = questions[index];
   const progress = questions.length ? Math.round((index / questions.length) * 100) : 0;
-
-  const handleSaveApiKey = () => {
-    setApiKey(apiKeyInput);
-    setApiKeyModalOpen(false);
-    toast.success(apiKeyInput ? "AI API Key saved!" : "API key cleared. Using smart fallback.");
-  };
 
   const handleStart = async () => {
     if (!user) return;
@@ -729,53 +706,7 @@ function InterviewBody() {
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Set Up Your Session</CardTitle>
-              <Dialog open={apiKeyModalOpen} onOpenChange={setApiKeyModalOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                    <Sparkles className="size-3.5 text-primary" />
-                    {getApiKey() ? "AI Key: Configured" : "Add Free AI Key"}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Key className="size-5 text-primary" />
-                      Configure Free Google Gemini API Key
-                    </DialogTitle>
-                    <DialogDescription>
-                      Empower your mock interview with real-time AI question generation and deep evaluation using a free Google Gemini key.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="apikey">Google Gemini API Key</Label>
-                      <Input
-                        id="apikey"
-                        type="password"
-                        placeholder="AIzaSy..."
-                        value={apiKeyInput}
-                        onChange={(e) => setApiKeyInput(e.target.value)}
-                      />
-                    </div>
-                    <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
-                      <p className="font-medium text-foreground">How to get a free key:</p>
-                      <ol className="list-decimal list-inside space-y-0.5">
-                        <li>Visit <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-primary underline">Google AI Studio</a></li>
-                        <li>Sign in with your Google account and click "Create API Key"</li>
-                        <li>Paste it here and click Save</li>
-                      </ol>
-                      <p className="text-[11px] pt-1">Even without an API key, HireSense will still evaluate your interview with our built-in intelligent evaluator.</p>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setApiKeyModalOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSaveApiKey}>Save Key</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
+            <CardTitle className="text-lg">Set Up Your Session</CardTitle>
             <CardDescription>
               Around 2-3 minutes per question with live webcam and speech transcription.
             </CardDescription>

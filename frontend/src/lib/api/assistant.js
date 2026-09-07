@@ -1,4 +1,5 @@
 import { delay, readStore, uid, writeStore } from "./store";
+import { getApiKey, callGeminiApi } from "./ai";
 
 const THREADS_KEY = "chat-threads";
 
@@ -48,37 +49,72 @@ export function saveThread(thread) {
   }
 }
 
-function reply(question, skills = []) {
-  const q = question.toLowerCase();
-  const skillLine = skills.length ? skills.slice(0, 5).join(", ") : "your core subjects";
+/**
+ * Calls Gemini 3.5 Flash for true conversational placement mentoring
+ */
+export async function askAssistant(question, skills = [], history = []) {
+  const apiKey = getApiKey();
 
-  if (q.includes("30") && q.includes("day")) {
-    return `**30-day placement plan**\n\n- Days 1-7: Core language revision (${skillLine}) plus 2 aptitude sets a day.\n- Days 8-14: DBMS and SQL, write 20 queries from scratch.\n- Days 15-21: Data structures — arrays, strings, linked lists, hash maps, trees.\n- Days 22-26: One mock interview a day in HireSense, review every low score.\n- Days 27-30: HR answers, resume polish, and two full mock rounds.`;
-  }
-  if (q.includes("polymorphism")) {
-    return `**Polymorphism** means one interface, many forms.\n\n- *Compile time* (overloading): same method name, different parameters.\n- *Runtime* (overriding): a child class redefines a parent method and the JVM picks the implementation at runtime.\n\nExample: a \`Shape\` reference pointing to \`Circle\` or \`Square\` calls each one's own \`area()\`.`;
-  }
-  if (q.includes("java") && (q.includes("prepare") || q.includes("interview"))) {
-    return `**Preparing for a Java interview**\n\n1. OOP pillars with examples you can code on paper.\n2. Collections: List vs Set vs Map, and when to use each.\n3. Exception handling, threads basics, and the string pool.\n4. JVM memory and garbage collection at a high level.\n5. Two projects you can explain end to end.\n\nRun a Technical mock interview on Medium difficulty and review the feedback.`;
-  }
-  if (q.includes("resume")) {
-    return `**Resume tips**\n\n- One page, clean sections: summary, skills, projects, education.\n- Every bullet: action verb + what you built + result.\n- Match the keywords in the job description.\n\nUpload your resume in the Resume Analyzer for a scored breakdown.`;
-  }
-  if (q.includes("skill") || q.includes("learn")) {
-    return `Based on your profile (${skillLine}), a solid order is: strengthen one language deeply, then data structures, then DBMS/SQL, then one framework. Check the Skill Analysis page to see where your practice scores are lowest.`;
-  }
-  return `Here is how I would approach that:\n\n1. Break the goal into weekly milestones.\n2. Practise actively — write code and answers, don't just read.\n3. Use HireSense mock interviews to test yourself, then fix the weakest area first.\n\nYour listed skills: ${skillLine}. Ask me about a specific topic and I'll go deeper.`;
-}
+  if (apiKey) {
+    try {
+      const systemInstruction = `You are "HireSense AI Placement Mentor", an expert technical career coach and mock interviewer helping college students crack engineering campus drives (TCS Digital, Infosys, Amazon, Cognizant, Startups).
+Candidate Core Skills: ${(skills || []).join(", ") || "Java, Spring Boot, SQL, DSA, OOP"}.
 
-/** POST /api/assistant/chat — swap for the backend AI endpoint later. */
-export async function askAssistant(question, skills) {
-  await delay(700);
+INSTRUCTIONS:
+1. Provide accurate, high-impact technical explanations with concise code snippets (Java, SQL, JavaScript, Python).
+2. Answer interview preparation questions, explain algorithmic complexity, and structure behavioral HR responses using the STAR method.
+3. Be encouraging, clear, and professional.
+4. Format your output with markdown bold headings, bullet points, and syntax-highlighted code blocks.`;
+
+      // Build context from previous conversation turns
+      const recentHistory = (history || []).slice(-6);
+      const historyContext = recentHistory.length > 0
+        ? recentHistory.map((m) => `${m.role === "user" ? "Student" : "Mentor"}: ${m.content}`).join("\n\n") + "\n\n"
+        : "";
+
+      const prompt = `${historyContext}Student: ${question}\n\nMentor:`;
+
+      const reply = await callGeminiApi({
+        prompt,
+        systemInstruction,
+        responseMimeType: null,
+        temperature: 0.6,
+      });
+
+      if (reply && reply.trim()) {
+        return {
+          id: uid("msg"),
+          role: "assistant",
+          content: reply.trim(),
+          createdAt: new Date().toISOString(),
+        };
+      }
+    } catch (err) {
+      console.warn("AI Assistant Gemini call failed, using fallback:", err);
+    }
+  }
+
+  // Fallback response
+  await delay(400);
   return {
     id: uid("msg"),
     role: "assistant",
-    content: reply(question, skills),
+    content: fallbackReply(question, skills),
     createdAt: new Date().toISOString(),
   };
+}
+
+function fallbackReply(question, skills = []) {
+  const q = question.toLowerCase();
+  const skillLine = skills.length ? skills.slice(0, 5).join(", ") : "Java, SQL, OOP, DSA";
+
+  if (q.includes("30") && q.includes("day")) {
+    return `### 30-Day Campus Placement Strategy\n\n- **Week 1: Core Fundamentals**: Deep dive into ${skillLine}.\n- **Week 2: Data Structures & Algorithms**: Arrays, Strings, HashMaps, Two-Pointers, and Recursion.\n- **Week 3: Database & Projects**: SQL queries, Joins, Indexing, and architecture of your top resume project.\n- **Week 4: Mock Rounds & HR**: Complete 2 HireSense mock interviews daily, study common HR questions using the STAR framework.`;
+  }
+  if (q.includes("java") && (q.includes("prepare") || q.includes("interview"))) {
+    return `### Top Java Placement Topics to Revise\n\n1. **OOP Concepts**: Real examples of Abstraction vs Interface, Runtime Polymorphism.\n2. **Collections Framework**: Internal working of \`HashMap\` (buckets, hashing, collisions), \`ArrayList\` vs \`LinkedList\`.\n3. **Multithreading**: Synchronization, \`volatile\`, \`Thread\` vs \`Runnable\`.\n4. **JVM Architecture**: Heap vs Stack, Garbage Collection phases.\n5. **Spring Boot**: Inversion of Control (IoC), Dependency Injection, and Spring Data JPA annotations.`;
+  }
+  return `I am here to guide your placement preparation for **${skillLine}**!\n\nFeel free to ask me:\n- To explain any technical concept or code snippet\n- For a 1-week or 30-day study roadmap\n- To conduct a quick Q&A on your resume projects\n- For tips on clearing aptitude or technical rounds!`;
 }
 
 export function userMessage(content) {
@@ -90,13 +126,13 @@ export async function sendChatMessage(threadId, content, skills = []) {
   const thread = getThread(threadId);
   if (!thread) throw new Error("Thread not found");
 
-  const title = thread.messages.length === 0 ? content.slice(0, 30) : thread.title;
+  const title = thread.messages.length === 0 ? content.slice(0, 32) : thread.title;
   thread.title = title;
   thread.messages.push(userMsg);
   thread.updatedAt = new Date().toISOString();
   saveThread(thread);
 
-  const assistantMsg = await askAssistant(content, skills);
+  const assistantMsg = await askAssistant(content, skills, thread.messages.slice(0, -1));
   thread.messages.push(assistantMsg);
   thread.updatedAt = new Date().toISOString();
   saveThread(thread);
