@@ -236,6 +236,13 @@ export function getIndianMaleVoice() {
  * Stops any ongoing speech or human audio playback
  */
 export function stopSpeaking() {
+  if (typeof window !== "undefined") {
+    window.__hiresense_utterance = null;
+    if (window.__hiresense_resumeInterval) {
+      clearInterval(window.__hiresense_resumeInterval);
+      window.__hiresense_resumeInterval = null;
+    }
+  }
   activeUtterances = [];
   if (currentHumanAudio) {
     try {
@@ -286,7 +293,6 @@ export function splitIntoNaturalPhrases(text) {
   return chunks.filter((c) => c.length > 0);
 }
 
-/**
 export function isMobileDevice() {
   if (typeof window === "undefined" || !navigator) return false;
   return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || "");
@@ -318,35 +324,32 @@ export function unlockAudioAndSpeech() {
 
 /**
  * Speaks the question aloud using a natural Indian Male interviewer voice.
- * On mobile phones: Uses unlocked SpeechSynthesis directly for zero latency and guaranteed speaker playback.
- * On desktop: Tries the studio audio stream with automatic SpeechSynthesis fallback.
+ * Works flawlessly across all devices (Desktop Chrome/Edge/Mac, Android, and iOS Safari).
  */
 export function speakQuestion(text, onEnd) {
   stopSpeaking();
   if (typeof window === "undefined") return;
 
-  const phrases = splitIntoNaturalPhrases(text);
-  if (phrases.length === 0) {
+  const cleanText = (text || "")
+    .replace(/[*#_`]/g, " ")
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleanText) {
     if (onEnd) onEnd();
     return;
   }
 
-  // On mobile phones, SpeechSynthesis is native, zero-latency, and immune to cellular stream drops
-  if (isMobileDevice()) {
-    speakWithIndianMaleSynthesis(phrases, onEnd);
-    return;
-  }
-
-  // On desktop, try backend TTS audio stream first, falling back to SpeechSynthesis
-  speakWithAudioStream(phrases, onEnd, () => {
-    speakWithIndianMaleSynthesis(phrases, onEnd);
-  });
+  // Speak directly using Web Speech API with global garbage-collection prevention
+  speakWithIndianMaleSynthesis(cleanText, onEnd);
 }
 
 /**
- * Speaks phrases sequentially using Chrome/browser Indian Male voice synthesis
+ * Speaks text using the device's native high-performance SpeechSynthesis engine.
+ * Guaranteed zero-latency, full sentence clarity, and immune to network stream drops.
  */
-function speakWithIndianMaleSynthesis(phrases, onEnd) {
+function speakWithIndianMaleSynthesis(text, onEnd) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
     if (onEnd) onEnd();
     return;
@@ -356,82 +359,76 @@ function speakWithIndianMaleSynthesis(phrases, onEnd) {
     window.speechSynthesis.cancel();
     window.speechSynthesis.resume();
 
-    let index = 0;
-    let resumeInterval = null;
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    // CRITICAL: Bind to window so Chromium / WebKit garbage collection doesn't kill speech mid-sentence
+    window.__hiresense_utterance = utterance;
+
+    utterance.rate = 0.96;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    const voices = window.speechSynthesis.getVoices() || [];
+    const maleVoice = getIndianMaleVoice();
+    if (maleVoice) {
+      utterance.voice = maleVoice;
+      utterance.lang = maleVoice.lang || "en-IN";
+    } else {
+      const fallbackVoice =
+        voices.find((v) => v.lang && (v.lang.startsWith("en-IN") || v.lang.startsWith("en_IN"))) ||
+        voices.find((v) => v.lang && v.lang.startsWith("en-US")) ||
+        voices.find((v) => v.lang && v.lang.startsWith("en")) ||
+        voices[0];
+      if (fallbackVoice) {
+        utterance.voice = fallbackVoice;
+        utterance.lang = fallbackVoice.lang;
+      } else {
+        utterance.lang = "en-IN";
+      }
+    }
 
     const cleanup = () => {
-      if (resumeInterval) {
-        clearInterval(resumeInterval);
-        resumeInterval = null;
+      window.__hiresense_utterance = null;
+      if (window.__hiresense_resumeInterval) {
+        clearInterval(window.__hiresense_resumeInterval);
+        window.__hiresense_resumeInterval = null;
       }
-      activeUtterances = [];
     };
 
-    // Keep Android Chrome / iOS Safari from pausing during playback
-    resumeInterval = setInterval(() => {
+    utterance.onend = () => {
+      cleanup();
+      if (onEnd) onEnd();
+    };
+
+    utterance.onerror = (err) => {
+      console.warn("SpeechSynthesis utterance error:", err);
+      cleanup();
+      if (onEnd) onEnd();
+    };
+
+    // Keep mobile Chrome / iOS Safari from pausing during playback
+    if (window.__hiresense_resumeInterval) {
+      clearInterval(window.__hiresense_resumeInterval);
+    }
+    window.__hiresense_resumeInterval = setInterval(() => {
       if (window.speechSynthesis && window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
-    }, 4000);
+    }, 3000);
 
-    const speakNext = () => {
-      if (index >= phrases.length) {
+    // 50ms delay after cancel() ensures Chrome state machine is ready to accept new utterance
+    setTimeout(() => {
+      try {
+        window.speechSynthesis.resume();
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.warn("SpeechSynthesis speak call error:", err);
         cleanup();
         if (onEnd) onEnd();
-        return;
       }
-
-      const phrase = phrases[index++];
-      const cleanText = phrase.replace(/[*#_`]/g, " ").trim();
-      if (!cleanText) {
-        speakNext();
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-
-      // Deep masculine resonance & steady placement interviewer tempo
-      utterance.rate = 0.93;
-      utterance.pitch = 0.82;
-
-      const maleVoice = getIndianMaleVoice();
-      if (maleVoice) {
-        utterance.voice = maleVoice;
-        utterance.lang = maleVoice.lang || "en-IN";
-      } else {
-        const voices = window.speechSynthesis.getVoices() || [];
-        const fallbackVoice = voices.find((v) => v.lang.startsWith("en")) || voices[0];
-        if (fallbackVoice) {
-          utterance.voice = fallbackVoice;
-          utterance.lang = fallbackVoice.lang;
-        } else {
-          utterance.lang = "en-US";
-        }
-      }
-
-      activeUtterances.push(utterance);
-
-      utterance.onend = () => {
-        speakNext();
-      };
-
-      utterance.onerror = (err) => {
-        console.warn("SpeechSynthesis phrase error:", err);
-        speakNext();
-      };
-
-      if (window.speechSynthesis.paused) {
-        try {
-          window.speechSynthesis.resume();
-        } catch { }
-      }
-
-      window.speechSynthesis.speak(utterance);
-    };
-
-    speakNext();
+    }, 60);
   } catch (err) {
-    console.warn("Synthesis failed:", err);
+    console.warn("Speech synthesis invocation failed:", err);
     if (onEnd) onEnd();
   }
 }

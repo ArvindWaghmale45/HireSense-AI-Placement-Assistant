@@ -24,6 +24,7 @@ import {
   BarChart3,
   Calendar,
   BookOpen,
+  User as UserIcon,
 } from "lucide-react";
 
 const QUICK_ACTIONS = [
@@ -121,12 +122,15 @@ function DashboardBody() {
         }
       />
 
-      {/* TOP ROW: COLORFUL STAT CARDS WITH NATURAL HOVER MOTIONS */}
+      {/* 4 Metric Summary Cards with Scroll Entrance */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total Interviews */}
+        {/* Card 1: Completed Interviews */}
         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
           whileHover={{ y: -3 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
           className="rounded-xl border border-indigo-500/20 bg-card p-5 relative overflow-hidden shadow-xs hover:border-indigo-500/40 hover:shadow-md transition-all"
         >
           <div className="flex items-center justify-between">
@@ -149,8 +153,11 @@ function DashboardBody() {
 
         {/* Card 2: Average Score */}
         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
           whileHover={{ y: -3 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
           className="rounded-xl border border-emerald-500/20 bg-card p-5 relative overflow-hidden shadow-xs hover:border-emerald-500/40 hover:shadow-md transition-all"
         >
           <div className="flex items-center justify-between">
@@ -178,8 +185,11 @@ function DashboardBody() {
 
         {/* Card 3: Personal Best */}
         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
           whileHover={{ y: -3 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
           className="rounded-xl border border-amber-500/20 bg-card p-5 relative overflow-hidden shadow-xs hover:border-amber-500/40 hover:shadow-md transition-all"
         >
           <div className="flex items-center justify-between">
@@ -207,8 +217,11 @@ function DashboardBody() {
 
         {/* Card 4: MCQ Accuracy */}
         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
           whileHover={{ y: -3 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
           className="rounded-xl border border-purple-500/20 bg-card p-5 relative overflow-hidden shadow-xs hover:border-purple-500/40 hover:shadow-md transition-all"
         >
           <div className="flex items-center justify-between">
@@ -472,6 +485,102 @@ function DashboardBody() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dashboard Footer with Quick Navigation Links */}
+      <footer className="mt-14 pt-8 border-t border-border/70 text-xs text-muted-foreground">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-display font-bold text-sm text-foreground">HireSense AI</span>
+            </div>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Intelligent Campus Placement & Full Stack Technical Mock Interview Ecosystem.
+            </p>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-mono">
+              <span>● Cloud Backend Live</span>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider mb-3 font-mono">
+              Placement Prep
+            </h4>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/interview" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                  <Mic className="size-3 text-indigo-500" /> AI Mock Interview
+                </Link>
+              </li>
+              <li>
+                <Link to="/prepare" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                  <Target className="size-3 text-amber-500" /> Question Bank
+                </Link>
+              </li>
+              <li>
+                <Link to="/skills" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                  <BrainCircuit className="size-3 text-rose-500" /> Skill Analysis
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider mb-3 font-mono">
+              Candidate Tools
+            </h4>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/resume" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                  <FileText className="size-3 text-emerald-500" /> Resume Analyzer
+                </Link>
+              </li>
+              <li>
+                <Link to="/assistant" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                  <MessageSquare className="size-3 text-sky-500" /> Career Mentor
+                </Link>
+              </li>
+              <li>
+                <Link to="/profile" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                  <UserIcon className="size-3 text-violet-500" /> Profile & Tech Stack
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-xs text-foreground uppercase tracking-wider mb-3 font-mono">
+              Quick Shortcuts
+            </h4>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/" className="hover:text-primary transition-colors">
+                  Platform Home
+                </Link>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                  className="hover:text-primary transition-colors text-left"
+                >
+                  Scroll to Top ↑
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="pt-6 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
+          <p>© {new Date().getFullYear()} HireSense — Designed for Campus Drive Excellence.</p>
+          <div className="flex items-center gap-4">
+            <Link to="/interview" className="hover:text-foreground transition-colors">Mock Rounds</Link>
+            <Link to="/prepare" className="hover:text-foreground transition-colors">Questions</Link>
+            <Link to="/skills" className="hover:text-foreground transition-colors">Skills</Link>
+            <Link to="/resume" className="hover:text-foreground transition-colors">Resume</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

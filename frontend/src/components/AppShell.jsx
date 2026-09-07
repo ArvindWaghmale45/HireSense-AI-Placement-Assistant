@@ -140,11 +140,12 @@ export function AppShell({ children }) {
       </main>
 
       {/* Mobile Floating Bottom Navigation Dock */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-border/80 px-2 py-1.5 flex items-center justify-around shadow-lg">
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/80 px-1 py-1.5 flex items-center justify-between shadow-lg">
         {[
           { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
           { to: "/interview", label: "Interview", icon: Mic },
           { to: "/prepare", label: "Prep", icon: Target },
+          { to: "/skills", label: "Skills", icon: BrainCircuit },
           { to: "/resume", label: "Resume", icon: FileText },
           { to: "/profile", label: "Profile", icon: UserIcon },
         ].map((item) => {
@@ -154,12 +155,12 @@ export function AppShell({ children }) {
               key={item.to}
               to={item.to}
               className={cn(
-                "relative flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-[10px] font-medium transition-colors",
+                "relative flex-1 flex flex-col items-center justify-center py-1 px-0.5 rounded-xl text-[9.5px] font-medium transition-colors",
                 active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <item.icon className={cn("size-5 mb-0.5", active ? "text-primary scale-110 transition-transform" : "text-muted-foreground")} />
-              <span>{item.label}</span>
+              <item.icon className={cn("size-4.5 mb-0.5", active ? "text-primary scale-110 transition-transform" : "text-muted-foreground")} />
+              <span className="truncate max-w-[50px]">{item.label}</span>
               {active && (
                 <span className="size-1 rounded-full bg-primary mt-0.5 shadow-xs" />
               )}
