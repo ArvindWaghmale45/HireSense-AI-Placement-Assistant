@@ -31,6 +31,8 @@ import {
   unlockAudioAndSpeech,
   playAudioCue,
   testGeminiConnection,
+  getApiKey,
+  setApiKey,
   INTERVIEW_TOPICS,
 } from "@/lib/api/ai";
 import {
@@ -123,6 +125,8 @@ function InterviewBody() {
   const [testingAi, setTestingAi] = useState(false);
   const [aiTestResult, setAiTestResult] = useState(null);
   const [isCameraCollapsedMobile, setIsCameraCollapsedMobile] = useState(false);
+  const [customApiKey, setCustomApiKey] = useState(() => getApiKey() || "");
+  const [showKeyInput, setShowKeyInput] = useState(() => !getApiKey());
 
   const handleTestAiConnection = async () => {
     setTestingAi(true);
@@ -1159,18 +1163,70 @@ function InterviewBody() {
                     gemini-3.6-flash
                   </Badge>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={handleTestAiConnection}
-                  disabled={testingAi}
-                  className="text-xs h-7 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
-                >
-                  {testingAi ? <Loader2 className="size-3 animate-spin" /> : <Zap className="size-3" />}
-                  {testingAi ? "Verifying..." : "Test AI Connection"}
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setShowKeyInput(!showKeyInput)}
+                    className="text-[11px] h-7 text-muted-foreground hover:text-foreground"
+                  >
+                    {showKeyInput ? "Hide Key ▲" : "Set API Key ⚙️"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    onClick={handleTestAiConnection}
+                    disabled={testingAi}
+                    className="text-xs h-7 gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                  >
+                    {testingAi ? <Loader2 className="size-3 animate-spin" /> : <Zap className="size-3" />}
+                    {testingAi ? "Verifying..." : "Test AI Connection"}
+                  </Button>
+                </div>
               </div>
+
+              {showKeyInput && (
+                <div className="p-2.5 rounded-lg border border-border/80 bg-background/80 space-y-2 animate-in fade-in-50">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-medium text-foreground">Gemini API Key:</span>
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Get Free Key from Google AI Studio ↗
+                    </a>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      placeholder="Paste Gemini API Key (AIzaSy...)"
+                      value={customApiKey}
+                      onChange={(e) => setCustomApiKey(e.target.value)}
+                      className="h-8 text-xs font-mono"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      className="h-8 text-xs shrink-0 font-medium"
+                      onClick={() => {
+                        setApiKey(customApiKey);
+                        toast.success("Gemini API key saved in browser storage!");
+                        handleTestAiConnection();
+                      }}
+                    >
+                      Save & Test
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Tip: You can also add <code>VITE_GEMINI_API_KEY</code> in Vercel project environment variables.
+                  </p>
+                </div>
+              )}
 
               {aiTestResult && (
                 <div
