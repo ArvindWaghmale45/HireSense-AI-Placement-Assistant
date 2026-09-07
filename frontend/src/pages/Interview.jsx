@@ -28,6 +28,7 @@ import {
   transcribeSpokenAudio,
   speakQuestion,
   stopSpeaking,
+  unlockAudioAndSpeech,
   INTERVIEW_TOPICS,
 } from "@/lib/api/ai";
 import {
@@ -84,6 +85,7 @@ function InterviewBody() {
   const {
     videoRef,
     attachVideo,
+    stream,
     isCameraOn,
     isMicOn,
     startStream,
@@ -92,6 +94,15 @@ function InterviewBody() {
     toggleMic,
     error: mediaError,
   } = useMediaStream();
+
+  // Automatically ensure camera is started and active as soon as interview enters running stage
+  useEffect(() => {
+    if (stage === "running" && enableCamera) {
+      if (!stream) {
+        startStream().catch((e) => console.warn("Auto-start camera failed:", e));
+      }
+    }
+  }, [stage, enableCamera, stream, startStream]);
 
   // High-sensitivity far-field Audio Recorder hook with real-time dB visualizer
   const {
@@ -277,9 +288,13 @@ function InterviewBody() {
   const handleStart = async () => {
     if (!user) return;
     setBusy(true);
+
+    // 1. Immediately unlock mobile audio & speech on direct candidate tap
+    unlockAudioAndSpeech();
+
     try {
       if (enableCamera) {
-        await startStream();
+        startStream().catch((err) => console.warn("Pre-start camera notice:", err));
       }
 
       const generated = await generateAiQuestions({
@@ -306,11 +321,11 @@ function InterviewBody() {
       resetRecording();
       setStage("running");
 
-      // Speak the first question aloud automatically
+      // Auto-speak question with mobile voice optimization
       setTimeout(() => {
         setIsSpeakingQuestion(true);
         speakQuestion(generated[0].text, () => setIsSpeakingQuestion(false));
-      }, 500);
+      }, 400);
     } catch (err) {
       toast.error("Error starting interview: " + err.message);
     } finally {
@@ -333,6 +348,7 @@ function InterviewBody() {
 
   const handleSpeakQuestion = () => {
     if (!current) return;
+    unlockAudioAndSpeech();
     if (isSpeakingQuestion) {
       stopSpeaking();
       setIsSpeakingQuestion(false);
@@ -344,6 +360,7 @@ function InterviewBody() {
 
   const handleSubmitAnswer = async () => {
     if (!user || !current) return;
+    unlockAudioAndSpeech();
     stopListening();
     stopRecording();
     stopSpeaking();

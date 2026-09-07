@@ -226,7 +226,13 @@ export default function Landing() {
 
       {/* Bento Grid Feature Cards */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 py-20 lg:py-28">
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 25 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5 }}
+          className="text-center max-w-3xl mx-auto mb-16"
+        >
           <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider text-primary border-primary/30 mb-3">
             Holistic Ecosystem
           </Badge>
@@ -236,12 +242,16 @@ export default function Landing() {
           <p className="mt-4 text-base sm:text-lg text-muted-foreground">
             Everything from speech-enabled mock interviews and instant resume auditing to personalized career mentoring.
           </p>
-        </div>
+        </motion.div>
 
-        {/* Bento Grid Layout */}
+        {/* Bento Grid Layout with Scroll Reveal */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {/* Bento Card 1 (Large 2 Cols): Mock Interviews */}
           <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.05 }}
             whileHover={{ y: -4 }}
             className="md:col-span-2 lg:col-span-2 rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card/90 to-primary/5 p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group hover:border-primary/50 hover:shadow-[0_0_35px_rgba(59,130,246,0.12)] transition-all"
           >
@@ -273,6 +283,10 @@ export default function Landing() {
 
           {/* Bento Card 2: Resume Analyzer */}
           <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.12 }}
             whileHover={{ y: -4 }}
             className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 flex flex-col justify-between relative group hover:border-primary/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all"
           >
@@ -296,6 +310,10 @@ export default function Landing() {
 
           {/* Bento Card 3: Skill Matrix */}
           <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.18 }}
             whileHover={{ y: -4 }}
             className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 flex flex-col justify-between relative group hover:border-primary/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all"
           >
@@ -319,6 +337,10 @@ export default function Landing() {
 
           {/* Bento Card 4: Placement Preparation */}
           <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.24 }}
             whileHover={{ y: -4 }}
             className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 flex flex-col justify-between relative group hover:border-primary/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all"
           >
@@ -342,6 +364,10 @@ export default function Landing() {
 
           {/* Bento Card 5 (2 Cols): AI Career Assistant */}
           <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.3 }}
             whileHover={{ y: -4 }}
             className="md:col-span-2 lg:col-span-2 rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card/90 to-cyan-500/5 p-6 sm:p-8 flex flex-col justify-between relative group hover:border-primary/50 hover:shadow-[0_0_35px_rgba(59,130,246,0.12)] transition-all"
           >
@@ -372,6 +398,10 @@ export default function Landing() {
 
           {/* Bento Card 6: Progress Analytics */}
           <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.5, delay: 0.36 }}
             whileHover={{ y: -4 }}
             className="rounded-2xl border border-border/80 bg-card p-6 sm:p-7 flex flex-col justify-between relative group hover:border-primary/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all"
           >
@@ -395,19 +425,25 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 3-Step Journey */}
+      {/* 3-Step Journey with Scroll Entrance */}
       <section className="border-t border-border bg-card/30 py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-14">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5 }}
+            className="text-center max-w-2xl mx-auto mb-14"
+          >
             <h2 className="font-display text-2xl sm:text-4xl font-bold">
               3 Steps to Campus Placement Readiness
             </h2>
             <p className="mt-2 text-sm sm:text-base text-muted-foreground">
               A structured roadmap from resume ingestion to the final offer letter.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid gap-8 sm:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-3">
             {[
               {
                 step: "01",
@@ -424,9 +460,13 @@ export default function Landing() {
                 title: "Address Gaps & Win Placements",
                 desc: "Review detailed rubrics, model answers, and study roadmaps before actual drives.",
               },
-            ].map((item) => (
-              <div
+            ].map((item, idx) => (
+              <motion.div
                 key={item.step}
+                initial={{ opacity: 0, y: 25 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.5, delay: idx * 0.15 }}
                 className="relative rounded-2xl border border-border/80 bg-card p-6 shadow-xs hover:border-primary/40 transition-colors"
               >
                 <span className="font-mono text-3xl font-extrabold text-primary/40 block mb-2">
@@ -436,7 +476,7 @@ export default function Landing() {
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                   {item.desc}
                 </p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

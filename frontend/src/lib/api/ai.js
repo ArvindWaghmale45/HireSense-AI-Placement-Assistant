@@ -287,8 +287,39 @@ export function splitIntoNaturalPhrases(text) {
 }
 
 /**
+export function isMobileDevice() {
+  if (typeof window === "undefined" || !navigator) return false;
+  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || "");
+}
+
+/**
+ * Pre-warms / unlocks both HTML5 Audio and Web Speech API on user gesture (tap/click).
+ * Essential for mobile Safari & Android Chrome autoplay compliance.
+ */
+export function unlockAudioAndSpeech() {
+  if (typeof window === "undefined") return;
+  try {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.resume();
+      const silent = new SpeechSynthesisUtterance(" ");
+      silent.volume = 0.01;
+      silent.rate = 10;
+      window.speechSynthesis.speak(silent);
+    }
+    const silentAudio = new Audio(
+      "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
+    );
+    silentAudio.volume = 0.01;
+    silentAudio.play().catch(() => {});
+  } catch (e) {
+    console.warn("Audio unlock notice:", e);
+  }
+}
+
+/**
  * Speaks the question aloud using a natural Indian Male interviewer voice.
- * Tries the real human studio voice audio stream first, with seamless fallback to SpeechSynthesis.
+ * On mobile phones: Uses unlocked SpeechSynthesis directly for zero latency and guaranteed speaker playback.
+ * On desktop: Tries the studio audio stream with automatic SpeechSynthesis fallback.
  */
 export function speakQuestion(text, onEnd) {
   stopSpeaking();
@@ -300,9 +331,14 @@ export function speakQuestion(text, onEnd) {
     return;
   }
 
-  // 1. Try real human audio stream first
+  // On mobile phones, SpeechSynthesis is native, zero-latency, and immune to cellular stream drops
+  if (isMobileDevice()) {
+    speakWithIndianMaleSynthesis(phrases, onEnd);
+    return;
+  }
+
+  // On desktop, try backend TTS audio stream first, falling back to SpeechSynthesis
   speakWithAudioStream(phrases, onEnd, () => {
-    // 2. If stream fails or autoplay is blocked, fall back to browser SpeechSynthesis
     speakWithIndianMaleSynthesis(phrases, onEnd);
   });
 }
@@ -318,17 +354,29 @@ function speakWithIndianMaleSynthesis(phrases, onEnd) {
 
   try {
     window.speechSynthesis.cancel();
-    if (window.speechSynthesis.paused) {
-      try {
-        window.speechSynthesis.resume();
-      } catch { }
-    }
+    window.speechSynthesis.resume();
 
     let index = 0;
+    let resumeInterval = null;
+
+    const cleanup = () => {
+      if (resumeInterval) {
+        clearInterval(resumeInterval);
+        resumeInterval = null;
+      }
+      activeUtterances = [];
+    };
+
+    // Keep Android Chrome / iOS Safari from pausing during playback
+    resumeInterval = setInterval(() => {
+      if (window.speechSynthesis && window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    }, 4000);
 
     const speakNext = () => {
       if (index >= phrases.length) {
-        activeUtterances = [];
+        cleanup();
         if (onEnd) onEnd();
         return;
       }
@@ -389,7 +437,7 @@ function speakWithIndianMaleSynthesis(phrases, onEnd) {
 }
 
 /**
- * Audio stream fallback via TTS proxy
+ * Audio stream fallback via backend TTS proxy
  */
 function speakWithAudioStream(phrases, onEnd, onFallback) {
   let phraseIndex = 0;
@@ -404,15 +452,33 @@ function speakWithAudioStream(phrases, onEnd, onFallback) {
     }
 
     const currentPhrase = phrases[phraseIndex++];
-    const audioUrl = `/api/tts?lang=en-IN&text=${encodeURIComponent(currentPhrase)}`;
+    const rawApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "/api";
+    const base = rawApiUrl.endsWith("/api") ? rawApiUrl : `${rawApiUrl.replace(/\/+$/, "")}/api`;
+    const audioUrl = `${base}/tts?lang=en-IN&text=${encodeURIComponent(currentPhrase)}`;
     const audio = new Audio(audioUrl);
     currentHumanAudio = audio;
 
+    let timeoutId = setTimeout(() => {
+      // If audio fails to load within 2.5s, fall back to speech synthesis immediately
+      if (!audio.duration || audio.paused) {
+        console.warn("Audio stream timed out, falling back to synthesis");
+        hasFailed = true;
+        currentHumanAudio = null;
+        if (onFallback) onFallback();
+      }
+    }, 2500);
+
+    audio.onplaying = () => {
+      clearTimeout(timeoutId);
+    };
+
     audio.onended = () => {
+      clearTimeout(timeoutId);
       playNext();
     };
 
     audio.onerror = (err) => {
+      clearTimeout(timeoutId);
       console.warn("Audio stream error, using fallback:", err);
       hasFailed = true;
       currentHumanAudio = null;
@@ -423,6 +489,7 @@ function speakWithAudioStream(phrases, onEnd, onFallback) {
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch((playErr) => {
+        clearTimeout(timeoutId);
         console.warn("Audio play() blocked, using fallback:", playErr);
         hasFailed = true;
         currentHumanAudio = null;

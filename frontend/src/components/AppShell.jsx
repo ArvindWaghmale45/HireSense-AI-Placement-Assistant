@@ -128,7 +128,7 @@ export function AppShell({ children }) {
       </header>
 
       {/* Main Container with Smooth Motion */}
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6 sm:py-8 pb-24 sm:pb-8">
         <motion.div
           key={pathname}
           initial={{ opacity: 0, y: 6 }}
@@ -138,6 +138,35 @@ export function AppShell({ children }) {
           {children}
         </motion.div>
       </main>
+
+      {/* Mobile Floating Bottom Navigation Dock */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-border/80 px-2 py-1.5 flex items-center justify-around shadow-lg">
+        {[
+          { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { to: "/interview", label: "Interview", icon: Mic },
+          { to: "/prepare", label: "Prep", icon: Target },
+          { to: "/resume", label: "Resume", icon: FileText },
+          { to: "/profile", label: "Profile", icon: UserIcon },
+        ].map((item) => {
+          const active = pathname === item.to || pathname.startsWith(item.to + "/");
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={cn(
+                "relative flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-[10px] font-medium transition-colors",
+                active ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <item.icon className={cn("size-5 mb-0.5", active ? "text-primary scale-110 transition-transform" : "text-muted-foreground")} />
+              <span>{item.label}</span>
+              {active && (
+                <span className="size-1 rounded-full bg-primary mt-0.5 shadow-xs" />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

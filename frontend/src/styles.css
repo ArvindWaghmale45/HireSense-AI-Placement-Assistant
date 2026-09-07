@@ -254,3 +254,37 @@
   animation: pulse-ring 3s ease-in-out infinite;
 }
 
+/* ===================================================================
+ * Smooth Scrolling & Mobile Touch Polish
+ * =================================================================== */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Premium Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.28);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+/* Enhanced mobile touch responsiveness */
+@media (max-width: 640px) {
+  button, a, input, textarea, select {
+    touch-action: manipulation;
+  }
+}
+

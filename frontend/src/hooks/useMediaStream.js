@@ -113,12 +113,28 @@ export function useMediaStream() {
     (node) => {
       videoRef.current = node;
       if (node && stream) {
-        if (node.srcObject !== stream) {
-          node.srcObject = stream;
+        try {
+          node.muted = true;
+          node.playsInline = true;
+          node.setAttribute("playsinline", "");
+          node.setAttribute("webkit-playsinline", "");
+          node.setAttribute("muted", "");
+          node.setAttribute("autoplay", "");
+          if (node.srcObject !== stream) {
+            node.srcObject = stream;
+          }
+          const playPromise = node.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((err) => {
+              console.warn("Video play error (will retry on metadata):", err);
+              node.onloadedmetadata = () => {
+                node.play().catch(() => {});
+              };
+            });
+          }
+        } catch (e) {
+          console.warn("Video attach exception:", e);
         }
-        node
-          .play()
-          .catch((err) => console.warn("Video auto-play prevented or awaiting interaction:", err));
       }
     },
     [stream]
@@ -127,12 +143,28 @@ export function useMediaStream() {
   // Sync video ref when stream changes
   useEffect(() => {
     if (videoRef.current && stream) {
-      if (videoRef.current.srcObject !== stream) {
-        videoRef.current.srcObject = stream;
+      const node = videoRef.current;
+      try {
+        node.muted = true;
+        node.playsInline = true;
+        node.setAttribute("playsinline", "");
+        node.setAttribute("webkit-playsinline", "");
+        node.setAttribute("muted", "");
+        node.setAttribute("autoplay", "");
+        if (node.srcObject !== stream) {
+          node.srcObject = stream;
+        }
+        const playPromise = node.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            node.onloadedmetadata = () => {
+              node.play().catch(() => {});
+            };
+          });
+        }
+      } catch (e) {
+        console.warn("Video sync exception:", e);
       }
-      videoRef.current
-        .play()
-        .catch((err) => console.warn("Video auto-play prevented:", err));
     }
   }, [stream, isCameraOn]);
 
