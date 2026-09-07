@@ -25,7 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
-import { listInterviews, saveInterview } from "@/lib/api/interviews";
+import { fetchUserInterviews, listInterviews, saveInterview } from "@/lib/api/interviews";
 import { useMediaStream } from "@/hooks/useMediaStream";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
@@ -150,7 +150,14 @@ function InterviewBody() {
   };
 
   useEffect(() => {
-    if (user) setHistory(listInterviews(user.id));
+    if (user) {
+      setHistory(listInterviews(user.id));
+      fetchUserInterviews().then((items) => {
+        if (items && items.length > 0) {
+          setHistory(items);
+        }
+      });
+    }
   }, [user, stage]);
 
   // Clean up media, audio recorder, and speech on stage change
@@ -186,6 +193,7 @@ function InterviewBody() {
         count,
         skills: user.skills || [],
         targetRole: user.targetRole || "Software Engineer",
+        resumeText: user.resumeText || "",
       });
 
       if (!generated || generated.length === 0) {

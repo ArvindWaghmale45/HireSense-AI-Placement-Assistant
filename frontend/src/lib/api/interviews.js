@@ -1,6 +1,8 @@
 import { HR_QUESTIONS, TECHNICAL_QUESTIONS } from "@/lib/data/questions";
 import { delay, readStore, uid, writeStore } from "./store";
+import { getAuthToken } from "./auth";
 
+const API_BASE_URL = "http://localhost:8080/api";
 const RESULTS_KEY = "interviews";
 
 function shuffle(items) {
@@ -71,9 +73,8 @@ export async function evaluateAnswer(question, answer) {
   return { score, covered, improve: improve.slice(0, 3), comment };
 }
 
-/** POST /api/interviews */
+/** POST /api/interviews — persists to Spring Boot backend, falls back to localStorage */
 export async function saveInterview(input) {
-  await delay(250);
   const answers = input.answers || [];
   const attempted = answers.filter((item) => (item.answer || "").trim().length > 0).length;
   const total = answers.reduce((sum, item) => sum + (item.feedback?.score || 0), 0);
@@ -96,6 +97,60 @@ export async function saveInterview(input) {
         ? "Good base. Revise the weaker topics and add examples to your answers."
         : "Focus on fundamentals first, then repeat this interview to measure progress.";
 
+  const detailsJson = JSON.stringify({
+    strengths,
+    improvements,
+    answers,
+  });
+
+  const token = getAuthToken();
+  if (token) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/interviews`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: typeof input.userId === "number" ? input.userId : null,
+          type: input.type,
+          difficulty: input.difficulty,
+          totalQuestions: input.totalQuestions,
+          attempted,
+          score,
+          summary,
+          detailsJson,
+        }),
+      });
+
+      if (res.ok) {
+        const savedBackend = await res.json();
+        const result = {
+          id: String(savedBackend.id),
+          userId: savedBackend.userId,
+          type: savedBackend.type,
+          difficulty: savedBackend.difficulty,
+          totalQuestions: savedBackend.totalQuestions,
+          attempted: savedBackend.attempted,
+          score: savedBackend.score,
+          strengths,
+          improvements,
+          summary: savedBackend.summary,
+          answers,
+          createdAt: savedBackend.createdAt || new Date().toISOString(),
+        };
+        const all = readStore(RESULTS_KEY, []);
+        writeStore(RESULTS_KEY, [result, ...all.filter((x) => String(x.id) !== String(result.id))]);
+        return result;
+      }
+    } catch (err) {
+      console.warn("Spring Boot interview save offline, falling back to local storage:", err);
+    }
+  }
+
+  // Fallback to local store
+  await delay(200);
   const result = {
     id: uid("int"),
     userId: input.userId,
@@ -116,12 +171,65 @@ export async function saveInterview(input) {
   return result;
 }
 
-/** GET /api/interviews */
-export function listInterviews(userId) {
-  return readStore(RESULTS_KEY, []).filter((item) => item.userId === userId);
+/** Fetches interviews from Spring Boot backend and syncs local cache */
+export async function fetchUserInterviews() {
+  const token = getAuthToken();
+  if (!token) return null;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/interviews`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      const list = await res.json();
+      const mapped = list.map((item) => {
+        let details = {};
+        try {
+          if (item.detailsJson) details = JSON.parse(item.detailsJson);
+        } catch {}
+        return {
+          id: String(item.id),
+          userId: item.userId,
+          type: item.type,
+          difficulty: item.difficulty,
+          totalQuestions: item.totalQuestions,
+          attempted: item.attempted,
+          score: item.score,
+          summary: item.summary,
+          strengths: details.strengths || [],
+          improvements: details.improvements || [],
+          answers: details.answers || [],
+          createdAt: item.createdAt,
+        };
+      });
+
+      const all = readStore(RESULTS_KEY, []);
+      const existingOther = all.filter((x) => !mapped.some((m) => String(m.id) === String(x.id)));
+      writeStore(RESULTS_KEY, [...mapped, ...existingOther]);
+      return mapped;
+    }
+  } catch (err) {
+    console.warn("Failed to fetch interviews from Spring Boot backend:", err);
+  }
+  return null;
 }
 
-/** GET /api/interviews/{id} */
-export function getInterview(id) {
-  return readStore(RESULTS_KEY, []).find((item) => item.id === id) ?? null;
+/** GET /api/interviews (Cached) */
+export function listInterviews(userId) {
+  return readStore(RESULTS_KEY, []).filter(
+    (item) => item.userId === userId || String(item.userId) === String(userId),
+  );
 }
+
+/** GET /api/interviews/{id} (Cached) */
+export function getInterview(id) {
+  return (
+    readStore(RESULTS_KEY, []).find(
+      (item) => item.id === id || String(item.id) === String(id),
+    ) ?? null
+  );
+}
+

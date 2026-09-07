@@ -111,5 +111,6 @@ export async function analyzeResume(file) {
     gaps,
     suggestions,
     wordCount,
+    resumeText: text,
   };
 }

@@ -29,6 +29,14 @@ public class User {
 
     private String targetRole;
 
+    private String education;
+
+    private String resumeFileName;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
+    private String resumeText;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_skills", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "skill")

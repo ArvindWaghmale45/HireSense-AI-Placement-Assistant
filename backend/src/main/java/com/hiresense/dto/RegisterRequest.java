@@ -26,5 +26,11 @@ public class RegisterRequest {
 
     private String targetRole;
 
+    private String education;
+
+    private String resumeFileName;
+
+    private String resumeText;
+
     private List<String> skills;
 }

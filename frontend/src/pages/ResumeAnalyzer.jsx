@@ -32,6 +32,7 @@ function ResumeBody() {
       if (user) {
         await patchProfile({
           resumeFileName: result.fileName,
+          resumeText: result.resumeText ? result.resumeText.slice(0, 8000) : "",
           skills: Array.from(new Set([...(user.skills || []), ...result.skills])),
           ...(result.education && !user.education ? { education: result.education } : {}),
           ...(result.targetRole && !user.targetRole ? { targetRole: result.targetRole } : {}),

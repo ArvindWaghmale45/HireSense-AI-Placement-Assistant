@@ -136,18 +136,24 @@ export async function generateAiQuestions({
   count = 5,
   skills = [],
   targetRole = "Software Engineer",
+  resumeText = "",
 }) {
   const apiKey = getApiKey();
   const skillList = skills.length > 0 ? skills.join(", ") : "Java, SQL, OOP, Data Structures";
+  const resumeExcerpt = (resumeText || "").trim().slice(0, 1800);
 
   if (apiKey) {
     try {
+      const contextInstructions = resumeExcerpt
+        ? `\nCandidate Resume & Projects Context:\n"""\n${resumeExcerpt}\n"""\nIMPORTANT RESUME TAILORING:\nAt least 2 questions MUST directly probe the candidate's actual projects, tools, or challenges mentioned in their resume (e.g., "In your project [X], how did you handle...", "You listed [Skill/Project], explain your implementation of...").\n`
+        : "";
+
       const prompt = `You are an expert technical and HR placement interviewer for campus and off-campus placements.
 Generate exactly ${count} interview questions for a candidate preparing for the role of "${targetRole}".
 Round Type: ${type} (TECHNICAL or HR)
 Difficulty Level: ${difficulty}
 Candidate Skills: ${skillList}
-
+${contextInstructions}
 Return ONLY a valid JSON array of objects with the following schema:
 [
   {

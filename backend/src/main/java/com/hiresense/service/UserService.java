@@ -38,6 +38,9 @@ public class UserService {
                 .email(req.getEmail().trim().toLowerCase())
                 .password(passwordEncoder.encode(req.getPassword()))
                 .targetRole(req.getTargetRole() != null ? req.getTargetRole().trim() : "Software Engineer")
+                .education(req.getEducation())
+                .resumeFileName(req.getResumeFileName())
+                .resumeText(req.getResumeText())
                 .skills(defaultSkills)
                 .role("ROLE_USER")
                 .build();
@@ -73,12 +76,43 @@ public class UserService {
         return toDto(user);
     }
 
+    @Transactional
+    public UserDto updateProfile(String email, UserDto req) {
+        User user = userRepository.findByEmail(email.trim().toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
+        if (req.getName() != null && !req.getName().isBlank()) {
+            user.setName(req.getName().trim());
+        }
+        if (req.getTargetRole() != null) {
+            user.setTargetRole(req.getTargetRole().trim());
+        }
+        if (req.getEducation() != null) {
+            user.setEducation(req.getEducation().trim());
+        }
+        if (req.getResumeFileName() != null) {
+            user.setResumeFileName(req.getResumeFileName());
+        }
+        if (req.getResumeText() != null) {
+            user.setResumeText(req.getResumeText());
+        }
+        if (req.getSkills() != null) {
+            user.setSkills(req.getSkills());
+        }
+
+        User updated = userRepository.save(user);
+        return toDto(updated);
+    }
+
     public UserDto toDto(User user) {
         return UserDto.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .targetRole(user.getTargetRole())
+                .education(user.getEducation())
+                .resumeFileName(user.getResumeFileName())
+                .resumeText(user.getResumeText())
                 .skills(user.getSkills())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())

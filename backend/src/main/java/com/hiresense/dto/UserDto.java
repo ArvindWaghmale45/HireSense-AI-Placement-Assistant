@@ -14,6 +14,9 @@ public class UserDto {
     private String name;
     private String email;
     private String targetRole;
+    private String education;
+    private String resumeFileName;
+    private String resumeText;
     private List<String> skills;
     private String role;
     private LocalDateTime createdAt;

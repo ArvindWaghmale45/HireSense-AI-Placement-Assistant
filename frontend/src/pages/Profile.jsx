@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
-import { listInterviews } from "@/lib/api/interviews";
+import { fetchUserInterviews, listInterviews } from "@/lib/api/interviews";
 import { listAttempts } from "@/lib/api/prep";
 import { SKILL_LIBRARY } from "@/lib/data/questions";
 
@@ -37,6 +37,12 @@ function ProfileBody() {
     setSkills(user.skills || []);
     setInterviews(listInterviews(user.id));
     setAttempts(listAttempts(user.id));
+
+    fetchUserInterviews().then((items) => {
+      if (items && items.length > 0) {
+        setInterviews(items);
+      }
+    });
   }, [user]);
 
   if (!user) return null;

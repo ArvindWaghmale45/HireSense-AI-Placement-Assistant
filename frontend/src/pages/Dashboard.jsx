@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
-import { listInterviews } from "@/lib/api/interviews";
+import { fetchUserInterviews, listInterviews } from "@/lib/api/interviews";
 import { listAttempts } from "@/lib/api/prep";
 import { BrainCircuit, FileText, MessageSquare, Mic, Target, TrendingUp } from "lucide-react";
 
@@ -54,6 +54,12 @@ function DashboardBody() {
     if (!user) return;
     setInterviews(listInterviews(user.id));
     setAttempts(listAttempts(user.id));
+
+    fetchUserInterviews().then((items) => {
+      if (items && items.length > 0) {
+        setInterviews(items);
+      }
+    });
   }, [user]);
 
   if (!user) return null;
