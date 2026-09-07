@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { analyzeResume } from "@/lib/api/resume";
 import {
   Upload,
+  FileText,
   FileCheck2,
   CheckCircle2,
   AlertCircle,
